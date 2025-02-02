@@ -1,0 +1,47 @@
+[project]
+name = "pycline"
+version = "0.0.1"
+description = "Python version for the Cline tool"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+keywords = ["pycline"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = ["requests", "prettytable", "anthropic"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "build",
+    "twine",
+    "black",
+    "flake8",
+    "mypy",
+    "isort",
+    "pre-commit",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/dusking/opensubtitles-com"
+"Bug Reports" = "https://github.com/dusking/opensubtitles-com/issues"
+"Source" = "https://github.com/dusking/opensubtitles-com.git"
+
+[tool.black]
+line-length = 120
+ignore = "E203"
+
+[project.scripts]
+pycline = "pycline_cli.main:main"
