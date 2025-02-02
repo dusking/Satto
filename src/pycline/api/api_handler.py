@@ -11,14 +11,15 @@ from .providers.anthropic import AnthropicHandler
 # from .providers.deepseek import DeepSeekHandler
 # from .providers.mistral import MistralHandler
 # from .providers.vscode_lm import VsCodeLmHandler
+from ..shared.dicts import DotDict
 from ..shared.api import ApiConfiguration, ModelInfo
 
 
 class ApiHandler(Protocol):
-    def create_message(self, system_prompt: str, messages: list) -> Any:
+    async def create_message(self, system_prompt: str, messages: list) -> Any:
         pass
 
-    def get_model(self) -> Dict[str, Union[str, ModelInfo]]:
+    def get_model(self) -> DotDict[str, Union[str, ModelInfo]]:
         pass
 
 

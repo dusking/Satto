@@ -12,8 +12,8 @@ class AnthropicHandler:
             api_key=self.options["api_key"],
             base_url=self.options.get("anthropic_base_url")
         )
-    
-    async def create_message(self, system_prompt: str, messages: list) -> AsyncGenerator[Dict[str, Any], None]:
+
+    async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
         model = self.get_model()
         model_id = model["id"]
 
@@ -23,12 +23,11 @@ class AnthropicHandler:
             max_tokens=model["info"].get("max_tokens", 8192),
             temperature=0,
             system=system_prompt,
-            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages],
+            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages]
         )
-        for content in message.content:
-            if content.type == "text":
-                yield DotDict({"type": "text", "text": content.text})
-    
+        
+        return DotDict({"type": "text", "text": message.content[0].text})
+
     def get_model(self):
         model_id = self.options.get("api_model_id")
         if model_id and model_id in anthropic_models:
