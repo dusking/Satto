@@ -146,6 +146,10 @@ class PyCline:
                     print(f"WRITE_TO_FILE RESULT: {result.message}")
                     if not result.success:
                         return False
+                elif block.type == "tool_use" and block.name == "attempt_completion":
+                    print(block.params.keys())
+                elif block.type == "tool_use":
+                    print(f"Unknown tool: {block.name}")
                 else:
                     print(f"Unknown block type: {block.type}")
             
