@@ -9,6 +9,7 @@ from ..api.api_handler import build_api_handler
 from ..shared.api import ApiConfiguration
 from .prompts.system import SYSTEM_PROMPT, add_user_instructions
 # from .mcp import McpHub
+from .assistant_message import parse_assistant_message
 
 
 class ApiStream(Protocol):
@@ -65,7 +66,6 @@ class PyCline:
         """
         pass
 
-
     async def get_response(self, prompt: str) -> str:
         """Get a response from the API for the given prompt.
 
@@ -75,16 +75,10 @@ class PyCline:
         Returns:
             The concatenated response from the API
         """
-
-        response_chunks = []
-
-        async for chunk in self.attempt_api_request(-1):
-            if chunk["type"] == "text" and isinstance(chunk["text"], str):
-                response_chunks.append(chunk["text"])
-            elif chunk["type"] == "text" and isinstance(chunk["text"], list):
-                response_chunks.extend(str(item) for item in chunk["text"])
-
-        return "".join(response_chunks)
+        response = await self.attempt_api_request(-1)
+        if isinstance(response, dict) and 'text' in response:
+            return response.text
+        return ""
 
     async def start_task(self, task):
         self.cline_messages = []
@@ -135,18 +129,29 @@ class PyCline:
 
         previous_api_req_index = -1
         response = await self.attempt_api_request(previous_api_req_index)
-        print(response)
-
-        end_loop = True
-        return end_loop
+        
+        # Process the response blocks
+        if isinstance(response, dict) and 'text' in response:
+            blocks = parse_assistant_message(response.text)
+            has_tool_use = any(block.type == "tool_use" for block in blocks)
+            
+            # Print all text blocks
+            for block in blocks:
+                if block.type == "text":
+                    print(f"PRINT CONTENT: {block.content}")
+            
+            # Return True if there was at least one tool use
+            return has_tool_use
+        
+        return False
 
     async def presentAssistantMessage(self):
         pass
 
-    async def attempt_api_request(self, previous_api_req_index: int) -> AsyncGenerator[Dict[str, Any], None]:
-        """Attempts to make an API request and handles streaming the response.
+    async def attempt_api_request(self, previous_api_req_index: int) -> Dict[str, Any]:
+        """Attempts to make an API request and handles the response.
 
-        This asynchronous generator function:
+        This asynchronous function:
         1. Waits for MCP servers to connect.
         2. Generates a system prompt with custom instructions.
         3. Manages conversation history truncation based on token usage and context window limits.
@@ -226,6 +231,17 @@ class PyCline:
         )
 
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
+
+        blocks = parse_assistant_message(response.text)
+        for block in blocks:
+            if block.type == "text":
+                print(f"Text block: {block.content}")
+            else:  # tool_use
+                print(f"Tool use: {block.name}")
+                print("Parameters:")
+                for param, value in block.params.items():
+                    print(f"  {param}: {value}")
+
         return response
 
     def get_next_truncation_range(self, messages: List[Dict], current_range: Optional[Dict], keep: str) -> Dict:
