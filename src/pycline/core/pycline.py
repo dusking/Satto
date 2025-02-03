@@ -10,6 +10,7 @@ from ..shared.api import ApiConfiguration
 from .prompts.system import SYSTEM_PROMPT, add_user_instructions
 # from .mcp import McpHub
 from .assistant_message import parse_assistant_message
+from .assistant_message.write_to_file_tool import WriteToFileTool
 
 
 class ApiStream(Protocol):
@@ -36,6 +37,7 @@ class PyCline:
         self.custom_instructions = None
         self.task = ""
         self.abort = False
+        self.write_to_file_tool = WriteToFileTool(self.cwd)
         self.consecutive_mistake_count = 0
         self.cline_messages = []
         self.api_conversation_history = []
@@ -135,18 +137,22 @@ class PyCline:
             blocks = parse_assistant_message(response.text)
             has_tool_use = any(block.type == "tool_use" for block in blocks)
             
-            # Print all text blocks
+            # Print all text blocks and handle tool uses
             for block in blocks:
                 if block.type == "text":
-                    print(f"PRINT CONTENT: {block.content}")
+                    print(f"PRINT CONTENT: \n{block.content}\n")
+                elif block.type == "tool_use" and block.name == "write_to_file":
+                    result = self.write_to_file_tool.execute(block.params)
+                    print(f"WRITE_TO_FILE RESULT: {result.message}")
+                    if not result.success:
+                        return False
+                else:
+                    print(f"Unknown block type: {block.type}")
             
             # Return True if there was at least one tool use
             return has_tool_use
         
         return False
-
-    async def presentAssistantMessage(self):
-        pass
 
     async def attempt_api_request(self, previous_api_req_index: int) -> Dict[str, Any]:
         """Attempts to make an API request and handles the response.
@@ -232,15 +238,15 @@ class PyCline:
 
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
 
-        blocks = parse_assistant_message(response.text)
-        for block in blocks:
-            if block.type == "text":
-                print(f"Text block: {block.content}")
-            else:  # tool_use
-                print(f"Tool use: {block.name}")
-                print("Parameters:")
-                for param, value in block.params.items():
-                    print(f"  {param}: {value}")
+        # blocks = parse_assistant_message(response.text)
+        # for block in blocks:
+        #     if block.type == "text":
+        #         print(f"Text block: \n{block.content}\n")
+        #     else:  # tool_use
+        #         print(f"Tool use: {block.name}")
+                # print("Parameters:")
+                # for param, value in block.params.items():
+                #     print(f"  {param}: {value}")
 
         return response
 
