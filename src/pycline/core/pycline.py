@@ -158,38 +158,46 @@ class PyCline:
                         "text": block.content
                     })
                 elif block.type == "tool_use":
-                    result = None
                     tool_description = f"[{block.name}]"
+                    result = None
                     
                     if block.name == "write_to_file":
                         result = self.write_to_file_tool.execute(block.params)
-                        tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
                     elif block.name == "read_file":
                         result = self.read_file_tool.execute(block.params)
-                        tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
                     elif block.name == "list_files":
                         result = self.list_files_tool.execute(block.params)
-                        tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
                     elif block.name == "search_files":
                         result = self.search_files_tool.execute(block.params)
-                        tool_description = f"[{block.name} for '{block.params.get('regex', '')}']"
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('regex', '')}']"
                     elif block.name == "list_code_definition_names":
                         result = self.list_code_definition_names_tool.execute(block.params)
-                        tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
                     
                     if result:
-                        print(f"{block.name.upper()} RESULT: {result.message}")
-                        next_user_content.append({
-                            "type": "text",
-                            "text": f"{tool_description} Result:"
-                        })
-                        if result.content:
-                            print(f"{block.name.upper()} CONTENT:\n{result.content}")
+                        if hasattr(result, 'message'):
+                            print(f"{block.name.replace('_', '').upper()} RESULT: {result.message}")
+                            next_user_content.append({
+                                "type": "text",
+                                "text": f"{tool_description} Result: {result.message}"
+                            })
+                        
+                        if hasattr(result, 'content') and result.content:
+                            # print(f"{block.name.upper()}_CONTENT:\n{result.content}")
                             next_user_content.append({
                                 "type": "text",
                                 "text": result.content
                             })
-                        if not result.success:
+                        
+                        if hasattr(result, 'success') and not result.success:
                             return False
                     else:
                         print(f"Unknown tool: {block.name}")
