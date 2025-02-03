@@ -11,6 +11,10 @@ from .prompts.system import SYSTEM_PROMPT, add_user_instructions
 # from .mcp import McpHub
 from .assistant_message import parse_assistant_message
 from .assistant_message.write_to_file_tool import WriteToFileTool
+from .assistant_message.read_file_tool import ReadFileTool
+from .assistant_message.list_files_tool import ListFilesTool
+from .assistant_message.search_files_tool import SearchFilesTool
+from .assistant_message.list_code_definition_names_tool import ListCodeDefinitionNamesTool
 
 
 class ApiStream(Protocol):
@@ -37,7 +41,14 @@ class PyCline:
         self.custom_instructions = None
         self.task = ""
         self.abort = False
+        
+        # Initialize tools
         self.write_to_file_tool = WriteToFileTool(self.cwd)
+        self.read_file_tool = ReadFileTool(self.cwd)
+        self.list_files_tool = ListFilesTool(self.cwd)
+        self.search_files_tool = SearchFilesTool(self.cwd)
+        self.list_code_definition_names_tool = ListCodeDefinitionNamesTool(self.cwd)
+        
         self.consecutive_mistake_count = 0
         self.cline_messages = []
         self.api_conversation_history = []
@@ -140,16 +151,29 @@ class PyCline:
             # Print all text blocks and handle tool uses
             for block in blocks:
                 if block.type == "text":
-                    print(f"PRINT CONTENT: \n{block.content}\n")
-                elif block.type == "tool_use" and block.name == "write_to_file":
-                    result = self.write_to_file_tool.execute(block.params)
-                    print(f"WRITE_TO_FILE RESULT: {result.message}")
-                    if not result.success:
-                        return False
-                elif block.type == "tool_use" and block.name == "attempt_completion":
-                    print(block.params.keys())
+                    print(f"PRINT CONTENT: {block.content}")
                 elif block.type == "tool_use":
-                    print(f"Unknown tool: {block.name}")
+                    result = None
+                    
+                    if block.name == "write_to_file":
+                        result = self.write_to_file_tool.execute(block.params)
+                    elif block.name == "read_file":
+                        result = self.read_file_tool.execute(block.params)
+                    elif block.name == "list_files":
+                        result = self.list_files_tool.execute(block.params)
+                    elif block.name == "search_files":
+                        result = self.search_files_tool.execute(block.params)
+                    elif block.name == "list_code_definition_names":
+                        result = self.list_code_definition_names_tool.execute(block.params)
+                    
+                    if result:
+                        print(f"{block.name.upper()} RESULT: {result.message}")
+                        if result.content:
+                            print(f"{block.name.upper()} CONTENT:\n{result.content}")
+                        if not result.success:
+                            return False
+                    else:
+                        print(f"Unknown tool: {block.name}")
                 else:
                     print(f"Unknown block type: {block.type}")
             
@@ -242,15 +266,6 @@ class PyCline:
 
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
 
-        # blocks = parse_assistant_message(response.text)
-        # for block in blocks:
-        #     if block.type == "text":
-        #         print(f"Text block: \n{block.content}\n")
-        #     else:  # tool_use
-        #         print(f"Tool use: {block.name}")
-                # print("Parameters:")
-                # for param, value in block.params.items():
-                #     print(f"  {param}: {value}")
 
         return response
 
