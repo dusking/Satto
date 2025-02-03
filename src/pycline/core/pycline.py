@@ -15,6 +15,8 @@ from .assistant_message.read_file_tool import ReadFileTool
 from .assistant_message.list_files_tool import ListFilesTool
 from .assistant_message.search_files_tool import SearchFilesTool
 from .assistant_message.list_code_definition_names_tool import ListCodeDefinitionNamesTool
+from .assistant_message.replace_in_file_tool import ReplaceInFileTool
+from .assistant_message.attempt_completion_tool import AttemptCompletionTool
 
 
 class ApiStream(Protocol):
@@ -48,6 +50,8 @@ class PyCline:
         self.list_files_tool = ListFilesTool(self.cwd)
         self.search_files_tool = SearchFilesTool(self.cwd)
         self.list_code_definition_names_tool = ListCodeDefinitionNamesTool(self.cwd)
+        self.replace_in_file_tool = ReplaceInFileTool(self.cwd)
+        self.attempt_completion_tool = AttemptCompletionTool(self.cwd)
         
         self.consecutive_mistake_count = 0
         self.cline_messages = []
@@ -181,6 +185,14 @@ class PyCline:
                         result = self.list_code_definition_names_tool.execute(block.params)
                         if result and result.success:
                             tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                    elif block.name == "replace_in_file":
+                        result = self.replace_in_file_tool.execute(block.params)
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                    elif block.name == "attempt_completion":
+                        result = self.attempt_completion_tool.execute(block.params)
+                        if result and result.success:
+                            tool_description = f"[{block.name}]"
                     
                     if result:
                         if hasattr(result, 'message'):

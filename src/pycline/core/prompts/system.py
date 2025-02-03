@@ -3,7 +3,7 @@ import platform
 from pathlib import Path
 from typing import Optional
 
-from pycline.core.mcp import McpHub
+from pycline.shared.mcp import McpHub
 from pycline.shared.browser_settings import BrowserSettings
 
 # import { BrowserSettings } from "../../shared/BrowserSettings"
