@@ -62,6 +62,7 @@ class PyCline:
         self.replace_in_file_tool = ReplaceInFileTool(self.cwd)
         self.attempt_completion_tool = AttemptCompletionTool(self.cwd)
         self.execute_command_tool = ExecuteCommandTool(self.cwd)
+        self.ask_followup_question_tool = AskFollowupQuestionTool(self.cwd)
         self.attempt_completion_tool.set_pycline(self)
         
         self.consecutive_mistake_count = 0
@@ -178,8 +179,6 @@ class PyCline:
                         print(f"THINKING: \n{block.content}\n")
                     else:
                         print(f"TEXT: \n{block.content}\n")
-                    # Only add non-thinking blocks to the next user content
-                    # if not (hasattr(block, 'block_type') and block.block_type == "thinking"):
                     next_user_content.append({
                         "type": "text",
                         "text": block.content
@@ -222,6 +221,10 @@ class PyCline:
                         result = self.execute_command_tool.execute(block.params)
                         if result and result.success:
                             tool_description = f"[{block.name} for '{block.params.get('command', '')}']"
+                    elif block.name == "ask_followup_question":
+                        result = self.ask_followup_question_tool.execute(block.params)
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('question', '')}']"
                     
                     if result:
                         if hasattr(result, 'message'):
@@ -232,7 +235,6 @@ class PyCline:
                             })
                         
                         if hasattr(result, 'content') and result.content:
-                            # print(f"{block.name.upper()}_CONTENT:\n{result.content}")
                             next_user_content.append({
                                 "type": "text",
                                 "text": result.content

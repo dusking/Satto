@@ -8,6 +8,7 @@ from .list_code_definition_names_tool import ListCodeDefinitionNamesTool
 from .replace_in_file_tool import ReplaceInFileTool
 from .attempt_completion_tool import AttemptCompletionTool
 from .execute_command_tool import ExecuteCommandTool
+from .ask_followup_question_tool import AskFollowupQuestionTool
 
 __all__ = [
     'parse_assistant_message',
@@ -19,5 +20,6 @@ __all__ = [
     'ListCodeDefinitionNamesTool',
     'ReplaceInFileTool',
     'AttemptCompletionTool',
-    'ExecuteCommandTool'
+    'ExecuteCommandTool',
+    'AskFollowupQuestionTool'
 ]
