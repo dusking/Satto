@@ -26,7 +26,17 @@ class AnthropicHandler:
             messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages]
         )
         
-        return DotDict({"type": "text", "text": message.content[0].text})
+        # Extract usage information
+        usage = {
+            "input_tokens": message.usage.input_tokens,
+            "output_tokens": message.usage.output_tokens
+        }
+        
+        return DotDict({
+            "type": "text", 
+            "text": message.content[0].text,
+            "usage": usage
+        })
 
     def get_model(self):
         model_id = self.options.get("api_model_id")

@@ -18,7 +18,7 @@ async def async_main():
         api_key=api_key,
         model_id="claude-3-5-sonnet-20241022")
     await client.start_task(args.prompt)
-    print("\nClaude's Done.")
+    print(f"\nClaude's Done. cost: {client.get_cost()}")
 
 
 def main():

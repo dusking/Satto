@@ -8,6 +8,7 @@ from typing_extensions import Protocol
 from ..api.api_handler import build_api_handler
 from ..shared.api import ApiConfiguration
 from .prompts.system import SYSTEM_PROMPT, add_user_instructions
+from ..utils.cost import calculate_api_cost
 # from .mcp import McpHub
 from .assistant_message import parse_assistant_message
 from .assistant_message.write_to_file_tool import WriteToFileTool
@@ -44,6 +45,12 @@ class PyCline:
         self.task = ""
         self.abort = False
         
+        # Track API usage
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+        self.total_cache_writes = 0
+        self.total_cache_reads = 0
+        
         # Initialize tools
         self.write_to_file_tool = WriteToFileTool(self.cwd)
         self.read_file_tool = ReadFileTool(self.cwd)
@@ -52,6 +59,7 @@ class PyCline:
         self.list_code_definition_names_tool = ListCodeDefinitionNamesTool(self.cwd)
         self.replace_in_file_tool = ReplaceInFileTool(self.cwd)
         self.attempt_completion_tool = AttemptCompletionTool(self.cwd)
+        self.attempt_completion_tool.set_pycline(self)
         
         self.consecutive_mistake_count = 0
         self.cline_messages = []
@@ -147,8 +155,11 @@ class PyCline:
         previous_api_req_index = -1
         response = await self.attempt_api_request(previous_api_req_index)
         
-        # Process the response blocks
+        # Process the response blocks and track usage
         if isinstance(response, dict) and 'text' in response:
+            if 'usage' in response:
+                self.total_input_tokens += response['usage'].get('input_tokens', 0)
+                self.total_output_tokens += response['usage'].get('output_tokens', 0)
             blocks = parse_assistant_message(response.text)
             has_tool_use = any(block.type == "tool_use" for block in blocks)
             next_user_content = []
@@ -362,3 +373,18 @@ class PyCline:
         """Display a message to the user."""
         # In a real implementation this would show a UI message
         pass
+
+    def get_cost(self) -> float:
+        """Get the total API usage cost in USD.
+        
+        Returns:
+            float: Total cost of API usage in USD based on token counts and model pricing.
+        """
+        model_info = self.api_handler.get_model().info
+        return calculate_api_cost(
+            model_info,
+            self.total_input_tokens,
+            self.total_output_tokens,
+            self.total_cache_writes,
+            self.total_cache_reads
+        )
