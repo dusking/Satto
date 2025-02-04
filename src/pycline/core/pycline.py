@@ -162,10 +162,22 @@ class PyCline:
         Args:
             task: The task description
         """
+        # First set the task
+        self.task = task
+        
+        # Then try to load history
         if not await self.load_history():
-            raise Exception("No history found to resume")
+            # If no history found, start a new task instead
+            self.task_id = str(int(time.time()))
+            self.cline_messages = []
+            self.api_conversation_history = []
             
-        return await self.start_task(task)
+        return await self.initiate_task_loop([
+            {
+                "type": "text",
+                "text": f"<task>\n{task}\n</task>"
+            }
+        ], True)
 
     async def initiate_task_loop(self, user_content, is_new_task):
         next_user_content = user_content

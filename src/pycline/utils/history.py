@@ -98,12 +98,18 @@ def get_task_history() -> List[Dict]:
             continue
             
         try:
-            messages = load_cline_messages(task_id)
-            if not messages:
+            # Try to load API conversation history
+            history = load_api_conversation_history(task_id)
+            if not history:
                 continue
                 
             # Get task metadata from first message
-            task_message = messages[0]
+            first_message = history[0]
+            if not first_message or not first_message.get("content"):
+                continue
+                
+            # Extract task from content
+            task_content = first_message["content"][0]["text"] if isinstance(first_message["content"], list) else ""
             
             # Calculate task size
             task_size = 0
@@ -113,8 +119,8 @@ def get_task_history() -> List[Dict]:
             
             tasks.append({
                 "id": task_id,
-                "ts": task_message.get("ts", 0),
-                "task": task_message.get("text", ""),
+                "ts": int(task_id),  # Task ID is timestamp
+                "task": task_content,
                 "size": task_size
             })
         except Exception as e:
