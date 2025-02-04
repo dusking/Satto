@@ -46,8 +46,8 @@ class PyCline:
             api_key: API key for authentication
             model_id: Optional model identifier
             base_url: Optional base URL for the API
-            task_id: Optional task ID for resuming an existing task
-            load_latest: Whether to load the latest task history if no task_id is provided
+            task_id: Optional task ID for resuming an existing task. If not provided and load_latest is True, will attempt to load latest task ID.
+            load_latest: Whether to load the latest task ID if no task_id is provided. Note that actual task history loading is handled by resume_task().
         """
         self.cwd = os.getcwd()
         self.api_handler = None
@@ -156,33 +156,16 @@ class PyCline:
             }
         ], True)
 
-    async def resume_task(self) -> None:
-        """Resume the latest task or a specific task by ID."""
+    async def resume_task(self, task: str) -> None:
+        """Resume a task with history.
+        
+        Args:
+            task: The task description
+        """
         if not await self.load_history():
             raise Exception("No history found to resume")
             
-        # Get the last message that isn't a resume message
-        last_message = None
-        for msg in reversed(self.cline_messages):
-            if msg.get("ask") not in ["resume_task", "resume_completed_task"]:
-                last_message = msg
-                break
-                
-        if not last_message:
-            raise Exception("No valid message found to resume from")
-            
-        # Determine if the task was completed
-        is_completed = last_message.get("ask") == "completion_result"
-        
-        # Add resume message
-        resume_type = "resume_completed_task" if is_completed else "resume_task"
-        
-        return await self.initiate_task_loop([
-            {
-                "type": "text",
-                "text": f"[TASK RESUMPTION] This task was interrupted. The conversation may have been incomplete. Be aware that the project state may have changed since then. The current working directory is now '{self.cwd}'"
-            }
-        ], False)
+        return await self.start_task(task)
 
     async def initiate_task_loop(self, user_content, is_new_task):
         next_user_content = user_content

@@ -17,7 +17,7 @@ async def async_main():
         api_provider="anthropic", 
         api_key=api_key,
         model_id="claude-3-5-sonnet-20241022")
-    await client.start_task(args.prompt)
+    await client.resume_task(args.prompt)
     print(f"\nClaude's Done. cost: {client.get_cost()}")
 
 
