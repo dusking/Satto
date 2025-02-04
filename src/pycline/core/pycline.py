@@ -5,6 +5,13 @@ import time
 from typing import Dict, Any, Optional, AsyncGenerator, Union, List
 from weakref import WeakValueDictionary, ref
 from typing_extensions import Protocol
+from ..utils.history import (
+    save_api_conversation_history,
+    load_api_conversation_history,
+    save_cline_messages,
+    load_cline_messages,
+    get_task_history
+)
 from ..api.api_handler import build_api_handler
 from ..shared.api import ApiConfiguration
 from .prompts.system import SYSTEM_PROMPT, add_user_instructions
@@ -29,7 +36,7 @@ class ApiStream(Protocol):
 
 
 class PyCline:
-    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None):
         """Initialize PyCline instance.
 
         Args:
@@ -37,6 +44,7 @@ class PyCline:
             api_key: API key for authentication
             model_id: Optional model identifier
             base_url: Optional base URL for the API
+            task_id: Optional task ID for resuming an existing task
         """
         self.cwd = os.getcwd()
         self.api_handler = None
@@ -46,6 +54,7 @@ class PyCline:
         self.custom_instructions = None
         self.task = ""
         self.abort = False
+        self.task_id = task_id or str(int(time.time()))
         
         # Track API total usage cost
         self.total_input_tokens = 0
@@ -79,21 +88,28 @@ class PyCline:
         }
         self.api_handler = build_api_handler(config)
 
-    async def add_to_api_conversation_history(self, message):
-        self.api_conversation_history.append(message)
-        # await this.saveApiConversationHistory()
-
-    async def save_api_conversation_history(self, message):
-        """
-
+    async def add_to_api_conversation_history(self, message: Dict) -> None:
+        """Add a message to the API conversation history and save it.
+        
         Args:
-            message:
-
-        Save content to local file like:
-        ~/Library/ApplicationSupport/Code/User/globalStorage/saoudrizwan.claude-dev/tasks
-
+            message: The message to add
         """
-        pass
+        self.api_conversation_history.append(message)
+        await self.save_api_conversation_history()
+
+    async def save_api_conversation_history(self) -> None:
+        """Save the current API conversation history to disk."""
+        try:
+            save_api_conversation_history(self.task_id, self.api_conversation_history)
+        except Exception as e:
+            print(f"Failed to save API conversation history: {e}")
+
+    async def save_cline_messages(self) -> None:
+        """Save the current Cline UI messages to disk."""
+        try:
+            save_cline_messages(self.task_id, self.cline_messages)
+        except Exception as e:
+            print(f"Failed to save Cline messages: {e}")
 
     async def get_response(self, prompt: str) -> str:
         """Get a response from the API for the given prompt.
@@ -109,10 +125,22 @@ class PyCline:
             return response.text
         return ""
 
-    async def start_task(self, task):
-        self.cline_messages = []
-        self.api_conversation_history = []
-        is_new_task = True
+    async def start_task(self, task: str) -> None:
+        """Start a new task or resume an existing one.
+        
+        Args:
+            task: The task description
+        """
+        if not self.task_id:
+            self.task_id = str(int(time.time()))
+            
+        # For new tasks, initialize empty history
+        if not await self.load_history():
+            self.cline_messages = []
+            self.api_conversation_history = []
+            is_new_task = True
+        else:
+            is_new_task = False
         return await self.initiate_task_loop([
             {
                 "type": "text",
@@ -370,11 +398,19 @@ class PyCline:
         end = truncation_range.get('end', len(messages))
         return messages[end:]
 
-    async def save_cline_messages(self):
-        """Save the current state of cline messages."""
-        # This would typically persist the messages to storage
-        # For now we'll just pass as it's not critical for core functionality
-        pass
+    async def load_history(self) -> bool:
+        """Load task history from disk.
+        
+        Returns:
+            bool: True if history was loaded successfully
+        """
+        try:
+            self.api_conversation_history = load_api_conversation_history(self.task_id)
+            self.cline_messages = load_cline_messages(self.task_id)
+            return len(self.api_conversation_history) > 0 or len(self.cline_messages) > 0
+        except Exception as e:
+            print(f"Failed to load history: {e}")
+            return False
 
     async def ask(self, question_type: str, error_message: str) -> Dict[str, str]:
         """Ask the user a question and get their response."""
