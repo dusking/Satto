@@ -26,6 +26,7 @@ from .assistant_message.list_code_definition_names_tool import ListCodeDefinitio
 from .assistant_message.replace_in_file_tool import ReplaceInFileTool
 from .assistant_message.attempt_completion_tool import AttemptCompletionTool
 from .assistant_message.execute_command_tool import ExecuteCommandTool
+from .assistant_message.ask_followup_question_tool import AskFollowupQuestionTool
 
 
 class ApiStream(Protocol):
