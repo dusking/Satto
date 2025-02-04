@@ -60,7 +60,7 @@ class PyCline:
 
         # If no task_id provided and load_latest is True, try to load latest task
         if not task_id and load_latest:
-            latest_task = get_latest_task()
+            latest_task = get_task_history()[-1] if get_task_history() else None
             if latest_task:
                 self.task_id = latest_task["id"]
             else:
