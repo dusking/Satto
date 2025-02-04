@@ -18,6 +18,7 @@ from .assistant_message.search_files_tool import SearchFilesTool
 from .assistant_message.list_code_definition_names_tool import ListCodeDefinitionNamesTool
 from .assistant_message.replace_in_file_tool import ReplaceInFileTool
 from .assistant_message.attempt_completion_tool import AttemptCompletionTool
+from .assistant_message.execute_command_tool import ExecuteCommandTool
 
 
 class ApiStream(Protocol):
@@ -60,6 +61,7 @@ class PyCline:
         self.list_code_definition_names_tool = ListCodeDefinitionNamesTool(self.cwd)
         self.replace_in_file_tool = ReplaceInFileTool(self.cwd)
         self.attempt_completion_tool = AttemptCompletionTool(self.cwd)
+        self.execute_command_tool = ExecuteCommandTool(self.cwd)
         self.attempt_completion_tool.set_pycline(self)
         
         self.consecutive_mistake_count = 0
@@ -216,6 +218,10 @@ class PyCline:
                             tool_description = f"[{block.name}]"
                             # Return True to end the loop when attempt_completion is successful
                             return True
+                    elif block.name == "execute_command":
+                        result = self.execute_command_tool.execute(block.params)
+                        if result and result.success:
+                            tool_description = f"[{block.name} for '{block.params.get('command', '')}']"
                     
                     if result:
                         if hasattr(result, 'message'):
