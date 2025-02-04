@@ -157,9 +157,9 @@ class PyCline:
             for block in blocks:
                 if block.type == "text":
                     if hasattr(block, 'block_type') and block.block_type == "thinking":
-                        print(f"THINKING: {block.content}")
+                        print(f"THINKING: \n{block.content}\n")
                     else:
-                        print(f"{block.content}")
+                        print(f"TEXT: \n{block.content}\n")
                     # Only add non-thinking blocks to the next user content
                     # if not (hasattr(block, 'block_type') and block.block_type == "thinking"):
                     next_user_content.append({
@@ -203,7 +203,7 @@ class PyCline:
                     
                     if result:
                         if hasattr(result, 'message'):
-                            print(f"{block.name.replace('_', '').upper()} RESULT: {result.message}")
+                            print(f"{block.name.replace('_', '').upper()} RESULT: \n{result.message}\n")
                             next_user_content.append({
                                 "type": "text",
                                 "text": f"{tool_description} Result: {result.message}"
@@ -219,13 +219,13 @@ class PyCline:
                         if hasattr(result, 'success') and not result.success:
                             return False
                     else:
-                        print(f"Unknown tool: {block.name}")
+                        print(f"Unknown tool: {block.name}\n")
                         next_user_content.append({
                             "type": "text",
                             "text": f"Unknown tool: {block.name}"
                         })
                 else:
-                    print(f"Unknown block type: {block.type}")
+                    print(f"Unknown block type: {block.type}\n")
             
             # If we had tool uses, make another request with the results
             if has_tool_use:
