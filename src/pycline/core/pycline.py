@@ -156,10 +156,14 @@ class PyCline:
             # Print all text blocks and handle tool uses
             for block in blocks:
                 if block.type == "text":
-                    print(f"PRINT CONTENT: {block.content}")
+                    if hasattr(block, 'block_type') and block.block_type == "thinking":
+                        print(f"THINKING: {block.content}")
+                    else:
+                        print(f"PRINT CONTENT: {block.content}")
                     next_user_content.append({
                         "type": "text",
-                        "text": block.content
+                        "text": block.content,
+                        "block_type": block.block_type if hasattr(block, 'block_type') else None
                     })
                 elif block.type == "tool_use":
                     tool_description = f"[{block.name}]"
@@ -193,6 +197,8 @@ class PyCline:
                         result = self.attempt_completion_tool.execute(block.params)
                         if result and result.success:
                             tool_description = f"[{block.name}]"
+                            # Return True to end the loop when attempt_completion is successful
+                            return True
                     
                     if result:
                         if hasattr(result, 'message'):

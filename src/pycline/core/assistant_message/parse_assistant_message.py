@@ -46,6 +46,7 @@ class ParamName(str, Enum):
 class TextContent:
     type: Literal["text"]
     content: str
+    block_type: Optional[str] = None  # For special blocks like "thinking"
 
 
 @dataclass
@@ -75,10 +76,21 @@ def parse_assistant_message(message: str) -> List[AssistantMessageContent]:
     def add_text_block():
         nonlocal current_text
         if current_text.strip():
-            blocks.append(TextContent(
-                type="text",
-                content=current_text.strip()
-            ))
+            # Check if this is a thinking block
+            text = current_text.strip()
+            if text.startswith("<thinking>") and text.endswith("</thinking>"):
+                # Extract content between thinking tags
+                content = text[len("<thinking>"):text.rfind("</thinking>")].strip()
+                blocks.append(TextContent(
+                    type="text",
+                    content=content,
+                    block_type="thinking"
+                ))
+            else:
+                blocks.append(TextContent(
+                    type="text",
+                    content=text
+                ))
         current_text = ""
 
     # Find all tool use blocks
