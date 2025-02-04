@@ -123,7 +123,9 @@ class WriteToFileTool:
             # Generate diff if file was modified
             diff_text = ""
             if exists:
-                diff_text = f"\n\nChanges made:\n{self._get_diff(original_content or '', content, str(rel_path))}"
+                diff = self._get_diff(original_content or '', content, str(rel_path)).strip()
+                diff = diff or "[No Changes Found]"
+                diff_text = f"\n\nChanges made:\n{diff}"
 
             return ToolResult(
                 success=True,
