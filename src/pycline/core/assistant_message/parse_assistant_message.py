@@ -78,14 +78,28 @@ def parse_assistant_message(message: str) -> List[AssistantMessageContent]:
         if current_text.strip():
             # Check if this is a thinking block
             text = current_text.strip()
-            if text.startswith("<thinking>") and text.endswith("</thinking>"):
-                # Extract content between thinking tags
-                content = text[len("<thinking>"):text.rfind("</thinking>")].strip()
-                blocks.append(TextContent(
-                    type="text",
-                    content=content,
-                    block_type="thinking"
-                ))
+            if "<thinking>" in text and "</thinking>" in text:
+                # Extract all thinking blocks from the text
+                while "<thinking>" in text and "</thinking>" in text:
+                    start = text.find("<thinking>") + len("<thinking>")
+                    end = text.find("</thinking>")
+                    if start > 0 and end > start:
+                        # Get the content between thinking tags
+                        thinking_content = text[start:end].strip()
+                        blocks.append(TextContent(
+                            type="text",
+                            content=thinking_content,
+                            block_type="thinking"
+                        ))
+                        # Remove the processed thinking block
+                        text = text[end + len("</thinking>"):].strip()
+                
+                # Add any remaining non-thinking text
+                if text:
+                    blocks.append(TextContent(
+                        type="text",
+                        content=text
+                    ))
             else:
                 blocks.append(TextContent(
                     type="text",

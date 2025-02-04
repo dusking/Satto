@@ -127,7 +127,7 @@ class PyCline:
             ]
             self.consecutive_mistake_count += 1
 
-    async def recursively_make_cline_requests(self, user_content, include_file_details, is_new_task):
+    async def recursively_make_cline_requests(self, user_content, include_file_details, is_new_task):     
         if self.abort:
             raise Exception("Cline instance aborted")
 
@@ -159,7 +159,9 @@ class PyCline:
                     if hasattr(block, 'block_type') and block.block_type == "thinking":
                         print(f"THINKING: {block.content}")
                     else:
-                        print(f"PRINT CONTENT: {block.content}")
+                        print(f"{block.content}")
+                    # Only add non-thinking blocks to the next user content
+                    # if not (hasattr(block, 'block_type') and block.block_type == "thinking"):
                     next_user_content.append({
                         "type": "text",
                         "text": block.content
