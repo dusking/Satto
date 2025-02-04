@@ -7,7 +7,8 @@ from .history import (
     load_api_conversation_history,
     save_cline_messages,
     load_cline_messages,
-    get_task_history
+    get_task_history,
+    get_latest_task
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     'load_api_conversation_history', 
     'save_cline_messages',
     'load_cline_messages',
-    'get_task_history'
+    'get_task_history',
+    'get_latest_task'
 ]

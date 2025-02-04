@@ -87,7 +87,7 @@ def get_task_history() -> List[Dict]:
     """Get a list of all tasks and their metadata.
     
     Returns:
-        List[Dict]: List of task metadata
+        List[Dict]: List of task metadata sorted by timestamp in descending order
     """
     history_dir = ensure_history_dir_exists()
     tasks = []
@@ -122,3 +122,12 @@ def get_task_history() -> List[Dict]:
             continue
             
     return sorted(tasks, key=lambda x: x["ts"], reverse=True)
+
+def get_latest_task() -> Optional[Dict]:
+    """Get the most recent task's metadata.
+    
+    Returns:
+        Optional[Dict]: The latest task's metadata or None if no tasks exist
+    """
+    tasks = get_task_history()
+    return tasks[0] if tasks else None

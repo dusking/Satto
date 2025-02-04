@@ -38,7 +38,7 @@ class ApiStream(Protocol):
 
 
 class PyCline:
-    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None):
+    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None, load_latest: bool = True):
         """Initialize PyCline instance.
 
         Args:
@@ -47,6 +47,7 @@ class PyCline:
             model_id: Optional model identifier
             base_url: Optional base URL for the API
             task_id: Optional task ID for resuming an existing task
+            load_latest: Whether to load the latest task history if no task_id is provided
         """
         self.cwd = os.getcwd()
         self.api_handler = None
@@ -56,7 +57,16 @@ class PyCline:
         self.custom_instructions = None
         self.task = ""
         self.abort = False
-        self.task_id = task_id or str(int(time.time()))
+
+        # If no task_id provided and load_latest is True, try to load latest task
+        if not task_id and load_latest:
+            latest_task = get_latest_task()
+            if latest_task:
+                self.task_id = latest_task["id"]
+            else:
+                self.task_id = str(int(time.time()))
+        else:
+            self.task_id = task_id or str(int(time.time()))
         
         # Track API total usage cost
         self.total_input_tokens = 0
@@ -129,27 +139,50 @@ class PyCline:
         return ""
 
     async def start_task(self, task: str) -> None:
-        """Start a new task or resume an existing one.
+        """Start a new task.
         
         Args:
             task: The task description
         """
-        if not self.task_id:
-            self.task_id = str(int(time.time()))
-            
-        # For new tasks, initialize empty history
-        if not await self.load_history():
-            self.cline_messages = []
-            self.api_conversation_history = []
-            is_new_task = True
-        else:
-            is_new_task = False
+        # Always generate new task_id for new tasks
+        self.task_id = str(int(time.time()))
+        self.cline_messages = []
+        self.api_conversation_history = []
+        
         return await self.initiate_task_loop([
             {
                 "type": "text",
                 "text": f"<task>\n{task}\n</task>"
             }
-        ], is_new_task)
+        ], True)
+
+    async def resume_task(self) -> None:
+        """Resume the latest task or a specific task by ID."""
+        if not await self.load_history():
+            raise Exception("No history found to resume")
+            
+        # Get the last message that isn't a resume message
+        last_message = None
+        for msg in reversed(self.cline_messages):
+            if msg.get("ask") not in ["resume_task", "resume_completed_task"]:
+                last_message = msg
+                break
+                
+        if not last_message:
+            raise Exception("No valid message found to resume from")
+            
+        # Determine if the task was completed
+        is_completed = last_message.get("ask") == "completion_result"
+        
+        # Add resume message
+        resume_type = "resume_completed_task" if is_completed else "resume_task"
+        
+        return await self.initiate_task_loop([
+            {
+                "type": "text",
+                "text": f"[TASK RESUMPTION] This task was interrupted. The conversation may have been incomplete. Be aware that the project state may have changed since then. The current working directory is now '{self.cwd}'"
+            }
+        ], False)
 
     async def initiate_task_loop(self, user_content, is_new_task):
         next_user_content = user_content
