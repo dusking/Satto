@@ -289,6 +289,8 @@ class PyCline:
                         result = self.ask_followup_question_tool.execute(block.params)
                         if result and result.success:
                             tool_description = f"[{block.name} for '{block.params.get('question', '')}']"
+                            # Return True to end the loop when ask_followup_question is successful
+                            return True
                     elif block.name == "plan_mode_response":
                         result = self.plan_mode_response_tool.execute(block.params)
                         if result and result.success:
