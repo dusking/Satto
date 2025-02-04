@@ -27,6 +27,7 @@ from .assistant_message.replace_in_file_tool import ReplaceInFileTool
 from .assistant_message.attempt_completion_tool import AttemptCompletionTool
 from .assistant_message.execute_command_tool import ExecuteCommandTool
 from .assistant_message.ask_followup_question_tool import AskFollowupQuestionTool
+from .assistant_message.plan_mode_response_tool import PlanModeResponseTool
 
 
 class ApiStream(Protocol):
@@ -73,6 +74,7 @@ class PyCline:
         self.attempt_completion_tool = AttemptCompletionTool(self.cwd)
         self.execute_command_tool = ExecuteCommandTool(self.cwd)
         self.ask_followup_question_tool = AskFollowupQuestionTool(self.cwd)
+        self.plan_mode_response_tool = PlanModeResponseTool(self.cwd)
         self.attempt_completion_tool.set_pycline(self)
         
         self.consecutive_mistake_count = 0
@@ -254,6 +256,10 @@ class PyCline:
                         result = self.ask_followup_question_tool.execute(block.params)
                         if result and result.success:
                             tool_description = f"[{block.name} for '{block.params.get('question', '')}']"
+                    elif block.name == "plan_mode_response":
+                        result = self.plan_mode_response_tool.execute(block.params)
+                        if result and result.success:
+                            tool_description = f"[{block.name}]"
                     
                     if result:
                         if hasattr(result, 'message'):
