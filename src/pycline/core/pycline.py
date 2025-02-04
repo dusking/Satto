@@ -163,13 +163,19 @@ class PyCline:
         
         # Process the response blocks and track usage
         if isinstance(response, dict) and 'text' in response:
+            # Reset current request tokens
+            self.total_input_tokens = 0
+            self.total_output_tokens = 0
+            self.total_cache_writes = 0
+            self.total_cache_reads = 0
+            
             if 'usage' in response:
                 input_tokens = response['usage'].get('input_tokens', 0)
                 output_tokens = response['usage'].get('output_tokens', 0)
                 
                 # Update both current and cumulative totals
-                self.total_input_tokens += input_tokens
-                self.total_output_tokens += output_tokens
+                self.total_input_tokens = input_tokens
+                self.total_output_tokens = output_tokens
                 self.cumulative_input_tokens += input_tokens
                 self.cumulative_output_tokens += output_tokens
             blocks = parse_assistant_message(response.text)

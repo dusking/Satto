@@ -21,18 +21,18 @@ def calculate_api_cost(
     Returns:
         float: Total cost in USD
     """
-    model_cache_writes_price = model_info.get('cache_writes_price', 0)
+    model_cache_writes_price = model_info.get('cache_writes_price') or 0
     cache_writes_cost = 0
     if cache_creation_input_tokens and model_cache_writes_price:
         cache_writes_cost = (model_cache_writes_price / 1_000_000) * cache_creation_input_tokens
 
-    model_cache_reads_price = model_info.get('cache_reads_price', 0)
+    model_cache_reads_price = model_info.get('cache_reads_price') or 0
     cache_reads_cost = 0
     if cache_read_input_tokens and model_cache_reads_price:
         cache_reads_cost = (model_cache_reads_price / 1_000_000) * cache_read_input_tokens
 
-    base_input_cost = ((model_info.get('input_price', 0)) / 1_000_000) * input_tokens
-    output_cost = ((model_info.get('output_price', 0)) / 1_000_000) * output_tokens
+    base_input_cost = (((model_info.get('input_price') or 0) / 1_000_000)) * input_tokens
+    output_cost = (((model_info.get('output_price') or 0) / 1_000_000)) * output_tokens
     total_cost = cache_writes_cost + cache_reads_cost + base_input_cost + output_cost
 
     return total_cost
