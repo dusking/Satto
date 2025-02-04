@@ -10,6 +10,15 @@ class ToolResult:
 class AttemptCompletionTool:
     def __init__(self, cwd: str):
         self.cwd = cwd
+        self.pycline = None
+
+    def set_pycline(self, pycline):
+        """Store a reference to the PyCline instance.
+        
+        Args:
+            pycline: The PyCline instance that created this tool
+        """
+        self.pycline = pycline
 
     def execute(self, params: Dict[str, Any]) -> ToolResult:
         """Execute the attempt_completion tool.
@@ -33,11 +42,15 @@ class AttemptCompletionTool:
                     content=None
                 )
 
-            # For now, we'll just return the result since command execution
-            # requires terminal integration which would be handled by PyCline
+            message = "Task completion attempted"
+            if command and self.pycline:
+                # If a command was provided and we have a PyCline instance,
+                # include the command in the message for execution
+                message = f"Task completion attempted. Command to demonstrate: {command}"
+            
             return ToolResult(
                 success=True,
-                message="Task completion attempted",
+                message=message,
                 content=result
             )
             
