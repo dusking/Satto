@@ -162,8 +162,7 @@ class PyCline:
                         print(f"PRINT CONTENT: {block.content}")
                     next_user_content.append({
                         "type": "text",
-                        "text": block.content,
-                        "block_type": block.block_type if hasattr(block, 'block_type') else None
+                        "text": block.content
                     })
                 elif block.type == "tool_use":
                     tool_description = f"[{block.name}]"
