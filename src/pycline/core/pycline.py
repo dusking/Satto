@@ -45,11 +45,17 @@ class PyCline:
         self.task = ""
         self.abort = False
         
-        # Track API usage
+        # Track API usage for current request
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         self.total_cache_writes = 0
         self.total_cache_reads = 0
+        
+        # Track API usage across all requests
+        self.cumulative_input_tokens = 0
+        self.cumulative_output_tokens = 0
+        self.cumulative_cache_writes = 0
+        self.cumulative_cache_reads = 0
         
         # Initialize tools
         self.write_to_file_tool = WriteToFileTool(self.cwd)
@@ -158,8 +164,14 @@ class PyCline:
         # Process the response blocks and track usage
         if isinstance(response, dict) and 'text' in response:
             if 'usage' in response:
-                self.total_input_tokens += response['usage'].get('input_tokens', 0)
-                self.total_output_tokens += response['usage'].get('output_tokens', 0)
+                input_tokens = response['usage'].get('input_tokens', 0)
+                output_tokens = response['usage'].get('output_tokens', 0)
+                
+                # Update both current and cumulative totals
+                self.total_input_tokens += input_tokens
+                self.total_output_tokens += output_tokens
+                self.cumulative_input_tokens += input_tokens
+                self.cumulative_output_tokens += output_tokens
             blocks = parse_assistant_message(response.text)
             has_tool_use = any(block.type == "tool_use" for block in blocks)
             next_user_content = []
@@ -374,17 +386,29 @@ class PyCline:
         # In a real implementation this would show a UI message
         pass
 
-    def get_cost(self) -> float:
-        """Get the total API usage cost in USD.
+    def get_cost(self, use_cumulative: bool = True) -> float:
+        """Get the API usage cost in USD.
+        
+        Args:
+            use_cumulative: If True, returns total cost across all requests. If False, returns cost of current request.
         
         Returns:
-            float: Total cost of API usage in USD based on token counts and model pricing.
+            float: Cost of API usage in USD based on token counts and model pricing.
         """
         model_info = self.api_handler.get_model().info
-        return calculate_api_cost(
-            model_info,
-            self.total_input_tokens,
-            self.total_output_tokens,
-            self.total_cache_writes,
-            self.total_cache_reads
-        )
+        if use_cumulative:
+            return calculate_api_cost(
+                model_info,
+                self.cumulative_input_tokens,
+                self.cumulative_output_tokens,
+                self.cumulative_cache_writes,
+                self.cumulative_cache_reads
+            )
+        else:
+            return calculate_api_cost(
+                model_info,
+                self.total_input_tokens,
+                self.total_output_tokens,
+                self.total_cache_writes,
+                self.total_cache_reads
+            )
