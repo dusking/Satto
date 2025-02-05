@@ -5,7 +5,7 @@ import time
 from typing import Dict, Any, Optional, AsyncGenerator, Union, List
 from weakref import WeakValueDictionary, ref
 from typing_extensions import Protocol
-from .responses import (
+from .prompts.responses import (
     format_tool_denied,
     format_tool_denied_with_feedback,
     format_tool_error,
