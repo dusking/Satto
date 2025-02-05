@@ -1,38 +1,86 @@
-"""
-This module implements the search_files tool for regex-based file searching using ripgrep.
-"""
-
-import asyncio
+"""Tool for performing regex-based file searches using ripgrep."""
+import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Any, Optional
 
 from ...services.ripgrep import regex_search_files
-from .tool import Tool
-
 
 @dataclass
-class SearchFilesParams:
-    """Parameters for the search_files tool."""
-    path: str
-    regex: str
-    file_pattern: Optional[str] = None
+class SearchFilesResult:
+    """Result of search_files tool execution."""
+    success: bool
+    message: str
+    content: Optional[str] = None
 
-
-class SearchFilesTool(Tool[SearchFilesParams]):
+class SearchFilesTool:
     """Tool for performing regex-based file searches using ripgrep."""
-
-    name = "search_files"
-    description = "Request to perform a regex search across files in a specified directory, providing context-rich results."
-    param_class = SearchFilesParams
-
-    async def execute(self, params: SearchFilesParams, cwd: str) -> str:
-        """Execute the search_files tool with the given parameters."""
+    
+    def __init__(self, cwd: str):
+        """Initialize the tool.
+        
+        Args:
+            cwd: Current working directory
+        """
+        self.cwd = cwd
+        
+    async def execute(self, params: Dict[str, Any]) -> SearchFilesResult:
+        """Execute the search_files tool.
+        
+        Args:
+            params: Tool parameters including:
+                - path: Directory path to search in
+                - regex: Regular expression pattern to search for
+                - file_pattern: (optional) Glob pattern to filter files
+                
+        Returns:
+            SearchFilesResult containing:
+                - success: Whether the operation succeeded
+                - message: Status or error message
+                - content: Search results as formatted string
+        """
         try:
-            return await regex_search_files(
-                cwd=cwd,
-                directory_path=params.path,
-                regex=params.regex,
-                file_pattern=params.file_pattern
+            path = params.get('path')
+            if not path:
+                return SearchFilesResult(
+                    success=False,
+                    message="Missing required parameter: path"
+                )
+
+            regex = params.get('regex')
+            if not regex:
+                return SearchFilesResult(
+                    success=False,
+                    message="Missing required parameter: regex"
+                )
+
+            # Convert relative paths to absolute using cwd
+            if not os.path.isabs(path):
+                path = os.path.join(self.cwd, path)
+                
+            # Verify the directory exists
+            if not os.path.exists(path):
+                return SearchFilesResult(
+                    success=False,
+                    message=f"Directory does not exist: {path}"
+                )
+
+            file_pattern = params.get('file_pattern')
+            
+            content = await regex_search_files(
+                cwd=self.cwd,
+                directory_path=path,
+                regex=regex,
+                file_pattern=file_pattern
             )
+            
+            return SearchFilesResult(
+                success=True,
+                message="Search completed successfully",
+                content=content
+            )
+            
         except Exception as e:
-            return f"Error performing file search: {str(e)}"
+            return SearchFilesResult(
+                success=False,
+                message=f"Error performing file search: {str(e)}"
+            )
