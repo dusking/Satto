@@ -1,156 +1,92 @@
+"""Tool for listing files in a directory."""
 import os
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
+from typing import Dict, Any, Optional
 
+from ...services.glob.list_files import list_files
 
 @dataclass
-class ToolResult:
-    """Result of a tool execution"""
+class ListFilesResult:
+    """Result of list_files tool execution."""
     success: bool
     message: str
     content: Optional[str] = None
 
-
 class ListFilesTool:
-    def __init__(self, working_directory: str):
-        """
-        Initialize the list_files tool.
-
-        Args:
-            working_directory: The base directory for all file operations
-        """
-        self.working_directory = Path(working_directory)
-        self.MAX_FILES = 200  # Maximum number of files to list
-
-    def _validate_path(self, dir_path: str) -> Path:
-        """
-        Validate and resolve the directory path.
-
-        Args:
-            dir_path: Relative or absolute path to the directory
-
-        Returns:
-            Resolved path
-
-        Raises:
-            ValueError: If path is invalid or outside working directory
-        """
-        # Resolve the full path
-        full_path = (self.working_directory / dir_path).resolve()
-
-        # Check if path is within working directory
-        try:
-            full_path.relative_to(self.working_directory)
-        except ValueError:
-            raise ValueError(f"Path '{dir_path}' is outside working directory")
-
-        # Check if directory exists
-        if not full_path.exists():
-            raise ValueError(f"Directory does not exist: {dir_path}")
-
-        # Check if path is a directory
-        if not full_path.is_dir():
-            raise ValueError(f"Path is not a directory: {dir_path}")
-
-        return full_path
-
-    def _list_files(self, directory: Path, recursive: bool) -> Tuple[List[str], bool]:
-        """
-        List files in the directory.
-
-        Args:
-            directory: Path to the directory
-            recursive: Whether to list files recursively
-
-        Returns:
-            Tuple of (list of file paths, whether limit was hit)
-        """
-        files = []
-        did_hit_limit = False
-
-        try:
-            if recursive:
-                for root, _, filenames in os.walk(directory):
-                    root_path = Path(root)
-                    for filename in filenames:
-                        if len(files) >= self.MAX_FILES:
-                            did_hit_limit = True
-                            break
-                        file_path = root_path / filename
-                        files.append(str(file_path.relative_to(directory)))
-                    if did_hit_limit:
-                        break
-            else:
-                for entry in directory.iterdir():
-                    if len(files) >= self.MAX_FILES:
-                        did_hit_limit = True
-                        break
-                    files.append(entry.name)
-
-        except Exception as e:
-            raise RuntimeError(f"Error listing files: {str(e)}")
-
-        return files, did_hit_limit
-
-    def _format_file_list(self, directory: Path, files: List[str], did_hit_limit: bool) -> str:
-        """Format the file list into a readable string."""
-        rel_path = directory.relative_to(self.working_directory)
-        header = f"Contents of {rel_path}/:\n"
+    """Tool for listing files in a directory."""
+    
+    def __init__(self, cwd: str):
+        """Initialize the tool.
         
-        if not files:
-            return header + "(empty directory)"
-
-        file_list = "\n".join(f"  {f}" for f in sorted(files))
-        footer = f"\n[Results limited to {self.MAX_FILES} files]" if did_hit_limit else ""
-        
-        return f"{header}{file_list}{footer}"
-
-    def execute(self, params: Dict[str, str]) -> ToolResult:
-        """
-        Execute the list_files tool.
-
         Args:
-            params: Dictionary containing 'path' and optional 'recursive' parameters
-
-        Returns:
-            ToolResult with success status, message, and file listing
+            cwd: Current working directory
         """
-        # Validate parameters
-        if 'path' not in params:
-            return ToolResult(
-                success=False,
-                message="Missing required parameter: 'path'"
-            )
-
-        recursive = params.get('recursive', '').lower() == 'true'
-
+        self.cwd = cwd
+        
+    async def execute(self, params: Dict[str, Any]) -> ListFilesResult:
+        """Execute the list_files tool.
+        
+        Args:
+            params: Tool parameters including:
+                - path: Directory path to list files from
+                - recursive: (optional) Whether to list files recursively
+                
+        Returns:
+            ListFilesResult containing:
+                - success: Whether the operation succeeded
+                - message: Status or error message
+                - content: List of files as newline-separated string
+        """
         try:
-            # Validate and resolve path
-            dir_path = self._validate_path(params['path'])
+            path = params.get('path')
+            if not path:
+                return ListFilesResult(
+                    success=False,
+                    message="Missing required parameter: path"
+                )
 
-            # List files
-            files, did_hit_limit = self._list_files(dir_path, recursive)
-
-            # Format result
-            content = self._format_file_list(dir_path, files, did_hit_limit)
-
-            # Create result message
-            rel_path = dir_path.relative_to(self.working_directory)
-            mode = "recursively " if recursive else ""
-            return ToolResult(
+            # Convert relative paths to absolute using cwd
+            if not os.path.isabs(path):
+                path = os.path.join(self.cwd, path)
+                
+            # Verify the directory exists
+            if not os.path.exists(path):
+                return ListFilesResult(
+                    success=False,
+                    message=f"Directory does not exist: {path}"
+                )
+                
+            recursive = params.get('recursive', False)
+            limit = 200  # Same limit as TypeScript version
+            
+            files, hit_limit = await list_files(path, recursive, limit)
+            
+            # Convert absolute paths to relative for display
+            relative_files = []
+            for file in files:
+                try:
+                    rel_path = os.path.relpath(file, path)
+                    # Keep forward slashes for consistency
+                    rel_path = rel_path.replace(os.sep, '/')
+                    if file.endswith('/'):  # Preserve directory markers
+                        rel_path += '/'
+                    relative_files.append(rel_path)
+                except ValueError:  # For paths on different drives
+                    relative_files.append(file)
+                    
+            content = '\n'.join(relative_files)
+            message = "Files listed successfully"
+            if hit_limit:
+                message += f"\nFile list truncated at {limit} entries"
+                
+            return ListFilesResult(
                 success=True,
-                message=f"Successfully {mode}listed files in: {rel_path}",
+                message=message,
                 content=content
             )
-
-        except ValueError as e:
-            return ToolResult(
-                success=False,
-                message=f"Invalid path: {str(e)}"
-            )
+            
         except Exception as e:
-            return ToolResult(
+            return ListFilesResult(
                 success=False,
                 message=f"Error listing files: {str(e)}"
             )
