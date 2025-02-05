@@ -143,24 +143,3 @@ class WriteToFileTool:
                 success=False,
                 message=f"Error writing file: {str(e)}"
             )
-
-
-# Example usage:
-if __name__ == "__main__":
-    # Create tool instance
-    tool = WriteToFileTool("/path/to/working/directory")
-
-    # Example: Create a new file
-    result = tool.execute({
-        "path": "example.txt",
-        "content": "Hello, World!"
-    })
-    print(f"Success: {result.success}")
-    print(f"Message: {result.message}")
-
-    if result.file_change:
-        print(f"File: {result.file_change.path}")
-        print(f"Is new: {result.file_change.is_new}")
-        if result.file_change.original_content:
-            print("Original content:", result.file_change.original_content)
-        print("New content:", result.file_change.content)
