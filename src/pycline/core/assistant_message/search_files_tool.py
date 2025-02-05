@@ -164,7 +164,11 @@ class SearchFilesTool:
         Execute the search_files tool.
 
         Args:
-            params: Dictionary containing 'path', 'regex', and optional 'file_pattern' parameters
+            params: Dictionary containing:
+                'path': Directory to search in
+                'regex': Regular expression pattern to search for
+                'file_pattern': (optional) Glob pattern to filter files
+                'exclude_patterns': (optional) Comma-separated list of patterns to exclude (e.g. "__pycache__,*.pyc,node_modules")
 
         Returns:
             ToolResult with success status, message, and search results
@@ -188,15 +192,23 @@ class SearchFilesTool:
             # Validate and compile regex
             regex = self._validate_regex(params['regex'])
 
-            # Get file pattern
+            # Get file pattern and exclude patterns
             file_pattern = params.get('file_pattern', '*')
+            exclude_patterns = params.get('exclude_patterns', '__pycache__,*.pyc,node_modules,*.class,*.o,*.so,*.dylib,*.dll,*.exe,*.jar,*.war,*.ear,*.zip,*.tar,*.gz,*.rar,*.7z,*.bz2,*.tgz,*.log,*.swp,*.bak,*.tmp,*.temp,*.DS_Store,Thumbs.db,.git,.svn,.hg,.idea,venv,env,.env,dist,build,coverage,*.egg-info').split(',')
 
             # Search files
             matches = []
             did_hit_limit = False
 
-            for root, _, filenames in os.walk(dir_path):
+            for root, dirs, filenames in os.walk(dir_path):
+                # Remove excluded directories from dirs list (modifies it in place)
+                dirs[:] = [d for d in dirs if not any(fnmatch(d, pat) for pat in exclude_patterns)]
+                
                 for filename in filenames:
+                    # Skip files that match exclude patterns
+                    if any(fnmatch(filename, pat) for pat in exclude_patterns):
+                        continue
+                        
                     if fnmatch(filename, file_pattern):
                         file_path = Path(root) / filename
                         file_matches = self._search_file(file_path, regex)
