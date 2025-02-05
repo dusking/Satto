@@ -23,6 +23,7 @@ from ..utils.history import (
     load_cline_messages,
     get_task_history
 )
+from ..utils.string import fix_model_html_escaping, remove_invalid_chars
 from ..api.api_handler import build_api_handler
 from ..shared.api import ApiConfiguration
 from .prompts.system import SYSTEM_PROMPT, add_user_instructions
@@ -262,136 +263,76 @@ class PyCline:
                     tool_description = f"[{block.name}]"
                     result = None
                     
-                    if block.name == "write_to_file":
+                    # Clean up model outputs before passing to tools
+                    if block.name == "write_to_file" and 'content' in block.params:
+                        block.params['content'] = fix_model_html_escaping(block.params['content'])
+                        block.params['content'] = remove_invalid_chars(block.params['content'])
                         result = self.write_to_file_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                    elif block.name == "replace_in_file" and 'diff' in block.params:
+                        block.params['diff'] = fix_model_html_escaping(block.params['diff'])
+                        block.params['diff'] = remove_invalid_chars(block.params['diff'])
+                        result = self.replace_in_file_tool.execute(block.params)
                     elif block.name == "read_file":
                         result = self.read_file_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
                     elif block.name == "list_files":
                         result = self.list_files_tool.execute(block.params)
-                        if result:
-                            if result.success:
-                                files = result.content.split('\n')
-                                did_hit_limit = "File list truncated" in result.message
-                                formatted_result = format_files_list(block.params.get('path', ''), files, did_hit_limit)
-                                result.content = formatted_result
-                                tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
-                            else:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
                     elif block.name == "search_files":
                         result = self.search_files_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('regex', '')}']"
                     elif block.name == "list_code_definition_names":
                         result = self.list_code_definition_names_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
-                    elif block.name == "replace_in_file":
-                        result = self.replace_in_file_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
                     elif block.name == "attempt_completion":
                         result = self.attempt_completion_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name}]"
-                                # Return True to end the loop when attempt_completion is successful
-                                return True
                     elif block.name == "execute_command":
                         result = self.execute_command_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('command', '')}']"
                     elif block.name == "ask_followup_question":
                         result = self.ask_followup_question_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name} for '{block.params.get('question', '')}']"
-                                # Return True to end the loop when ask_followup_question is successful
-                                return True
                     elif block.name == "plan_mode_response":
                         result = self.plan_mode_response_tool.execute(block.params)
-                        if result:
-                            if not result.success:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": format_tool_error(result.message)
-                                })
-                            else:
-                                tool_description = f"[{block.name}]"
                     
                     if result:
-                        if hasattr(result, 'message'):
-                            print(f"{block.name.replace('_', '').upper()} RESULT: \n{result.message}\n")
-                            formatted_result = format_tool_result(f"{tool_description} Result: {result.message}")
-                            if isinstance(formatted_result, list):
-                                next_user_content.extend(formatted_result)
+                        if not result.success:
+                            next_user_content.append({
+                                "type": "text",
+                                "text": format_tool_error(result.message)
+                            })
+                        else:
+                            if block.name in ["write_to_file", "read_file", "list_files", "search_files", 
+                                           "list_code_definition_names", "replace_in_file"]:
+                                tool_description = f"[{block.name} for '{block.params.get('path', '')}']"
+                            elif block.name == "search_files":
+                                tool_description = f"[{block.name} for '{block.params.get('regex', '')}']"
+                            elif block.name == "execute_command":
+                                tool_description = f"[{block.name} for '{block.params.get('command', '')}']"
+                            elif block.name == "ask_followup_question":
+                                tool_description = f"[{block.name} for '{block.params.get('question', '')}']"
                             else:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": formatted_result
-                                })
-                        
-                        if hasattr(result, 'content') and result.content:
-                            formatted_content = format_tool_result(result.content)
-                            if isinstance(formatted_content, list):
-                                next_user_content.extend(formatted_content)
-                            else:
-                                next_user_content.append({
-                                    "type": "text",
-                                    "text": formatted_content
-                                })
+                                tool_description = f"[{block.name}]"
+                            
+                            if hasattr(result, 'message'):
+                                print(f"{block.name.replace('_', '').upper()} RESULT: \n{result.message}\n")
+                                formatted_result = format_tool_result(f"{tool_description} Result: {result.message}")
+                                if isinstance(formatted_result, list):
+                                    next_user_content.extend(formatted_result)
+                                else:
+                                    next_user_content.append({
+                                        "type": "text",
+                                        "text": formatted_result
+                                    })
+                            
+                            if hasattr(result, 'content') and result.content:
+                                formatted_content = format_tool_result(result.content)
+                                if isinstance(formatted_content, list):
+                                    next_user_content.extend(formatted_content)
+                                else:
+                                    next_user_content.append({
+                                        "type": "text",
+                                        "text": formatted_content
+                                    })
+                            
+                            if block.name == "attempt_completion":
+                                return True
+                            elif block.name == "ask_followup_question":
+                                return True
                         
                         if hasattr(result, 'success') and not result.success:
                             return False
@@ -496,7 +437,6 @@ class PyCline:
         )
 
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
-
 
         return response
 
