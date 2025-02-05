@@ -35,9 +35,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/dusking/opensubtitles-com"
-"Bug Reports" = "https://github.com/dusking/opensubtitles-com/issues"
-"Source" = "https://github.com/dusking/opensubtitles-com.git"
+"Homepage" = "https://github.com/dusking/pycline"
+"Bug Reports" = "https://github.com/dusking/pycline/issues"
+"Source" = "https://github.com/dusking/pycline.git"
 
 [tool.black]
 line-length = 120
