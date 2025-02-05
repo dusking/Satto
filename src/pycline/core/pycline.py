@@ -277,7 +277,7 @@ class PyCline:
                     elif block.name == "list_files":
                         result = self.list_files_tool.execute(block.params)
                     elif block.name == "search_files":
-                        result = self.search_files_tool.execute(block.params)
+                        result = await self.search_files_tool.execute(block.params)
                     elif block.name == "list_code_definition_names":
                         result = self.list_code_definition_names_tool.execute(block.params)
                     elif block.name == "attempt_completion":
