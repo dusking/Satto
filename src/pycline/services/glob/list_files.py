@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Tuple, Set
 import glob
 import fnmatch
+from ...utils.path import are_paths_equal, to_posix_path
 
 DIRS_TO_IGNORE = [
     "node_modules",
@@ -24,10 +25,6 @@ DIRS_TO_IGNORE = [
     "Pods",
     ".*",  # Hidden directories
 ]
-
-def are_paths_equal(path1: str, path2: str) -> bool:
-    """Check if two paths are equal, accounting for case sensitivity and normalization."""
-    return os.path.normcase(os.path.normpath(path1)) == os.path.normcase(os.path.normpath(path2))
 
 async def list_files(dir_path: str, recursive: bool, limit: int) -> Tuple[List[str], bool]:
     """List files in a directory with smart filtering and traversal.
