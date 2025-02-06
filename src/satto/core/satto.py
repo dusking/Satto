@@ -2,9 +2,10 @@ import os
 import asyncio
 import json
 import time
-from typing import Dict, Any, Optional, AsyncGenerator, Union, List
+from typing import Dict, Any, Optional, AsyncGenerator, Union, List, cast
 from weakref import WeakValueDictionary, ref
 from typing_extensions import Protocol
+from ..shared.auto_approval_settings import AutoApprovalSettings, DEFAULT_AUTO_APPROVAL_SETTINGS
 from .prompts.responses import (
     format_tool_denied,
     format_tool_denied_with_feedback,
@@ -50,7 +51,7 @@ class ApiStream(Protocol):
 
 
 class Satto:
-    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None, load_latest: bool = True):
+    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None, load_latest: bool = True, auto_approval_settings: Optional[AutoApprovalSettings] = None):
         """Initialize Satto instance.
 
         Args:
@@ -62,6 +63,8 @@ class Satto:
             load_latest: Whether to load the latest task ID if no task_id is provided. Note that actual task history loading is handled by resume_task().
         """
         self.cwd = os.getcwd()
+        self.auto_approval_settings = auto_approval_settings or DEFAULT_AUTO_APPROVAL_SETTINGS
+        self.consecutive_auto_approved_requests_count = 0
         self.api_handler = None
         self.mcp_hub = None
         self.browser_settings = None
@@ -94,7 +97,7 @@ class Satto:
         self.list_code_definition_names_tool = ListCodeDefinitionNamesTool(self.cwd)
         self.replace_in_file_tool = ReplaceInFileTool(self.cwd)
         self.attempt_completion_tool = AttemptCompletionTool(self.cwd)
-        self.execute_command_tool = ExecuteCommandTool(self.cwd)
+        self.execute_command_tool = ExecuteCommandTool(self.cwd, self)
         self.ask_followup_question_tool = AskFollowupQuestionTool(self.cwd)
         self.plan_mode_response_tool = PlanModeResponseTool(self.cwd)
         self.attempt_completion_tool.set_satto(self)
@@ -279,7 +282,9 @@ class Satto:
                     elif block.name == "attempt_completion":
                         result = self.attempt_completion_tool.execute(block.params)
                     elif block.name == "execute_command":
-                        result = self.execute_command_tool.execute(block.params)
+                        result = await self.execute_command_tool.execute(block.params)
+                        if result.success and self.auto_approval_settings.enabled and self.auto_approval_settings.actions['execute_commands']:
+                            self.consecutive_auto_approved_requests_count += 1
                     elif block.name == "ask_followup_question":
                         result = self.ask_followup_question_tool.execute(block.params)
                     elif block.name == "plan_mode_response":

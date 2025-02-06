@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Optional
 from dataclasses import dataclass
+from ..prompts.responses import format_tool_denied
 
 
 @dataclass
@@ -13,7 +14,7 @@ class ToolResult:
 
 
 class ExecuteCommandTool:
-    def __init__(self, working_directory: str):
+    def __init__(self, working_directory: str, satto_instance):
         """
         Initialize the execute_command tool.
 
@@ -21,6 +22,7 @@ class ExecuteCommandTool:
             working_directory: The base directory for command execution
         """
         self.working_directory = Path(working_directory)
+        self.satto = satto_instance
 
     def _validate_params(self, params: Dict[str, str]) -> None:
         """
@@ -45,7 +47,41 @@ class ExecuteCommandTool:
         if requires_approval not in ['true', 'false']:
             raise ValueError("requires_approval must be 'true' or 'false'")
 
-    def execute(self, params: Dict[str, str]) -> ToolResult:
+    def should_auto_approve(self, requires_approval: bool) -> bool:
+        """
+        Check if the command should be auto-approved based on settings.
+
+        Args:
+            requires_approval: Whether the command requires explicit approval
+
+        Returns:
+            bool: True if the command should be auto-approved
+        """
+        if not self.satto.auto_approval_settings.enabled:
+            return False
+
+        if requires_approval:
+            return False
+
+        if self.satto.consecutive_auto_approved_requests_count >= self.satto.auto_approval_settings.max_requests:
+            return False
+
+        return self.satto.auto_approval_settings.actions['execute_commands']
+
+    async def ask_approval(self, command: str) -> bool:
+        """
+        Ask for user approval to execute a command.
+
+        Args:
+            command: The command to execute
+
+        Returns:
+            bool: True if approved, False if denied
+        """
+        response = await self.satto.ask("command", command)
+        return response.get("response") == "yesButtonClicked"
+
+    async def execute(self, params: Dict[str, str]) -> ToolResult:
         """
         Execute the command.
 
@@ -63,6 +99,17 @@ class ExecuteCommandTool:
 
             command = params['command']
             requires_approval = params['requires_approval'].lower() == 'true'
+
+            # Check if command should be auto-approved
+            if self.should_auto_approve(requires_approval):
+                self.satto.consecutive_auto_approved_requests_count += 1
+            else:
+                # Ask for user approval
+                if not await self.ask_approval(command):
+                    return ToolResult(
+                        success=False,
+                        message=format_tool_denied()
+                    )
 
             try:
                 # Execute the command and capture output
