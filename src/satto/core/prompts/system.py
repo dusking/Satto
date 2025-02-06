@@ -20,7 +20,7 @@ async def SYSTEM_PROMPT(
     supports_computer_use = False
 
     prompt = f"""
-    You are Cline, a highly skilled software engineer with extensive knowledge in many programming languages, frameworks, design patterns, and best practices.
+    You are Satto, a highly skilled software engineer with extensive knowledge in many programming languages, frameworks, design patterns, and best practices.
 
 ====
 
@@ -366,14 +366,14 @@ You accomplish a given task iteratively, breaking it down into clear steps and w
 
     return prompt.strip()
 
-def add_user_instructions(settings_custom_instructions: str = None, cline_rules_file_instructions: str = None) -> str:
+def add_user_instructions(settings_custom_instructions: str = None, satto_rules_file_instructions: str = None) -> str:
     custom_instructions = ""
 
     if settings_custom_instructions:
         custom_instructions += settings_custom_instructions + "\n\n"
 
-    if cline_rules_file_instructions:
-        custom_instructions += cline_rules_file_instructions
+    if satto_rules_file_instructions:
+        custom_instructions += satto_rules_file_instructions + "\n\n"
 
     return f"""
 ====
