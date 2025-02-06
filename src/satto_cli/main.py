@@ -2,11 +2,13 @@ import os
 import sys
 import argparse
 import asyncio
+from importlib.metadata import version
 from satto import Satto
 
 
 async def async_main():
     parser = argparse.ArgumentParser(description="Anthropic CLI: Interact with Claude AI")
+    parser.add_argument('--version', action='version', version=f'satto {version("satto")}')
     subparsers = parser.add_subparsers(dest='command', required=True)
     
     # Start command
@@ -18,7 +20,7 @@ async def async_main():
     resume_parser.add_argument("prompt", type=str, help="Enter a prompt to send to Claude")
     
     args = parser.parse_args()
-
+    
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise ValueError("API key must be provided either directly or through ANTHROPIC_API_KEY environment variable")
