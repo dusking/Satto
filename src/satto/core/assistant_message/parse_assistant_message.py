@@ -114,11 +114,13 @@ def parse_assistant_message(message: str) -> List[AssistantMessageContent]:
         tool_name = None
 
         for name in ToolName:
+            name = name.name.lower()
             tag = f"<{name}>"
             pos = message.find(tag)
             if pos != -1 and (tool_start == -1 or pos < tool_start):
                 tool_start = pos
                 tool_name = name
+                break
 
         if tool_start == -1:
             # No more tools found, add remaining text
@@ -165,6 +167,7 @@ def parse_tool_block(block: str) -> Optional[ToolUse]:
     # Find the tool name
     tool_name = None
     for name in ToolName:
+        name = name.name.lower()
         if block.startswith(f"<{name}>"):
             tool_name = name
             break
@@ -183,6 +186,7 @@ def parse_tool_block(block: str) -> Optional[ToolUse]:
     # Parse parameters
     params: Dict[ParamName, str] = {}
     for param in ParamName:
+        param = param.name.lower()
         param_start = content.find(f"<{param}>")
         if param_start != -1:
             param_end = content.find(f"</{param}>", param_start)
