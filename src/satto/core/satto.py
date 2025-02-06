@@ -22,7 +22,7 @@ from ..utils.history import (
     load_api_conversation_history,
     save_satto_messages,
     load_satto_messages,
-    get_task_history
+    get_latest_task
 )
 from ..utils.string import fix_model_html_escaping, remove_invalid_chars
 from ..api.api_handler import build_api_handler
@@ -75,13 +75,15 @@ class Satto:
 
         # If no task_id provided and load_latest is True, try to load latest task
         if not task_id and load_latest:
-            latest_task = get_task_history()[-1] if get_task_history() else None
+            latest_task = get_latest_task()
             if latest_task:
                 self.task_id = latest_task["id"]
             else:
                 self.task_id = str(int(time.time()))
         else:
             self.task_id = task_id or str(int(time.time()))
+        
+        print(f">>>>>>>>>>>>> {self.task_id}")
         
         # Track API total usage cost
         self.total_input_tokens = 0
