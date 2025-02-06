@@ -224,6 +224,7 @@ class Satto:
                     "text": format_too_many_mistakes("You seem to be having trouble. Please review the previous messages and try again.")
                 }
             ]
+            return False
 
         await self.add_to_api_conversation_history({
             "role": "user",
