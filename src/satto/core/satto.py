@@ -82,9 +82,7 @@ class Satto:
                 self.task_id = str(int(time.time()))
         else:
             self.task_id = task_id or str(int(time.time()))
-        
-        print(f">>>>>>>>>>>>> {self.task_id}")
-        
+                
         # Track API total usage cost
         self.total_input_tokens = 0
         self.total_output_tokens = 0
