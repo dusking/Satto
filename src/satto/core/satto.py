@@ -275,7 +275,7 @@ class Satto:
                     elif block.name == "read_file":
                         result = self.read_file_tool.execute(block.params)
                     elif block.name == "list_files":
-                        result = self.list_files_tool.execute(block.params)
+                        result = await self.list_files_tool.execute(block.params)
                     elif block.name == "search_files":
                         result = await self.search_files_tool.execute(block.params)
                     elif block.name == "list_code_definition_names":
