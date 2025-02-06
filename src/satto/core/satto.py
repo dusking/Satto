@@ -19,8 +19,8 @@ from .prompts.responses import (
 from ..utils.history import (
     save_api_conversation_history,
     load_api_conversation_history,
-    save_cline_messages,
-    load_cline_messages,
+    save_satto_messages,
+    load_satto_messages,
     get_task_history
 )
 from ..utils.string import fix_model_html_escaping, remove_invalid_chars
@@ -49,9 +49,9 @@ class ApiStream(Protocol):
         ...
 
 
-class PyCline:
+class Satto:
     def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None, load_latest: bool = True):
-        """Initialize PyCline instance.
+        """Initialize Satto instance.
 
         Args:
             api_provider: The API provider to use (e.g. "anthropic", "openai")
@@ -97,10 +97,10 @@ class PyCline:
         self.execute_command_tool = ExecuteCommandTool(self.cwd)
         self.ask_followup_question_tool = AskFollowupQuestionTool(self.cwd)
         self.plan_mode_response_tool = PlanModeResponseTool(self.cwd)
-        self.attempt_completion_tool.set_pycline(self)
+        self.attempt_completion_tool.set_satto(self)
         
         self.consecutive_mistake_count = 0
-        self.cline_messages = []
+        self.satto_messages = []
         self.api_conversation_history = []
         self.conversation_history_deleted_range = None
         self.is_waiting_for_first_chunk = False
@@ -129,12 +129,12 @@ class PyCline:
         except Exception as e:
             print(f"Failed to save API conversation history: {e}")
 
-    async def save_cline_messages(self) -> None:
-        """Save the current Cline UI messages to disk."""
+    async def save_satto_messages(self) -> None:
+        """Save the current Satto UI messages to disk."""
         try:
-            save_cline_messages(self.task_id, self.cline_messages)
+            save_satto_messages(self.task_id, self.satto_messages)
         except Exception as e:
-            print(f"Failed to save Cline messages: {e}")
+            print(f"Failed to save Satto messages: {e}")
 
     async def get_response(self, prompt: str) -> str:
         """Get a response from the API for the given prompt.
@@ -158,7 +158,7 @@ class PyCline:
         """
         # Always generate new task_id for new tasks
         self.task_id = str(int(time.time()))
-        self.cline_messages = []
+        self.satto_messages = []
         self.api_conversation_history = []
         
         return await self.initiate_task_loop([
@@ -181,7 +181,7 @@ class PyCline:
         if not await self.load_history():
             # If no history found, start a new task instead
             self.task_id = str(int(time.time()))
-            self.cline_messages = []
+            self.satto_messages = []
             self.api_conversation_history = []
             
         return await self.initiate_task_loop([
@@ -195,7 +195,7 @@ class PyCline:
         next_user_content = user_content
         include_file_details = True
         while not self.abort:
-            did_end_loop = await self.recursively_make_cline_requests(next_user_content,
+            did_end_loop = await self.recursively_make_satto_requests(next_user_content,
                                                                       include_file_details,
                                                                       is_new_task)
 
@@ -210,9 +210,9 @@ class PyCline:
             ]
             self.consecutive_mistake_count += 1
 
-    async def recursively_make_cline_requests(self, user_content, include_file_details, is_new_task):     
+    async def recursively_make_satto_requests(self, user_content, include_file_details, is_new_task):     
         if self.abort:
-            raise Exception("Cline instance aborted")
+            raise Exception("Satto instance aborted")
 
         if self.consecutive_mistake_count >= 3:
             next_user_content = [
@@ -222,15 +222,11 @@ class PyCline:
                 }
             ]
 
-        # if self.auto_approval_settings.enabled and \
-        #         self.consecutive_autoApproved_requests_count > self.autoApprovalSettings.max_requests:
-        #     pass
-
         await self.add_to_api_conversation_history({
             "role": "user",
             "content": user_content})
 
-        await self.save_cline_messages()
+        await self.save_satto_messages()
 
         previous_api_req_index = -1
         response = await self.attempt_api_request(previous_api_req_index)
@@ -348,7 +344,7 @@ class PyCline:
             
             # If we had tool uses, make another request with the results
             if has_tool_use:
-                return await self.recursively_make_cline_requests(next_user_content, False, False)
+                return await self.recursively_make_satto_requests(next_user_content, False, False)
             
             return has_tool_use
         
@@ -389,23 +385,23 @@ class PyCline:
 
         if False:
             settings_custom_instructions = self.custom_instructions.strip() if self.custom_instructions else None
-            cline_rules_file_path = os.path.join(self.cwd, '.clinerules')
-            cline_rules_file_instructions = None
+            satto_rules_file_path = os.path.join(self.cwd, '.sattorules')
+            satto_rules_file_instructions = None
 
-            if os.path.exists(cline_rules_file_path):
+            if os.path.exists(satto_rules_file_path):
                 try:
-                    with open(cline_rules_file_path, 'r', encoding='utf-8') as f:
+                    with open(satto_rules_file_path, 'r', encoding='utf-8') as f:
                         rule_file_content = f.read().strip()
                     if rule_file_content:
-                        cline_rules_file_instructions = f"# .clinerules\n\nThe following is provided by a root-level .clinerules file where the user has specified instructions for this working directory ({self.cwd})\n\n{rule_file_content}"
+                        satto_rules_file_instructions = f"# .sattorules\n\nThe following is provided by a root-level .sattorules file where the user has specified instructions for this working directory ({self.cwd})\n\n{rule_file_content}"
                 except Exception:
-                    print(f"Failed to read .clinerules file at {cline_rules_file_path}")
+                    print(f"Failed to read .sattorules file at {satto_rules_file_path}")
 
-            if settings_custom_instructions or cline_rules_file_instructions:
-                system_prompt += self.add_user_instructions(settings_custom_instructions, cline_rules_file_instructions)
+            if settings_custom_instructions or satto_rules_file_instructions:
+                system_prompt += self.add_user_instructions(settings_custom_instructions, satto_rules_file_instructions)
 
             if previous_api_req_index >= 0:
-                previous_request = self.cline_messages[previous_api_req_index] if previous_api_req_index < len(self.cline_messages) else None
+                previous_request = self.satto_messages[previous_api_req_index] if previous_api_req_index < len(self.satto_messages) else None
                 if previous_request and previous_request.get('text'):
                     try:
                         info = json.loads(previous_request['text'])
@@ -427,7 +423,7 @@ class PyCline:
                                 self.conversation_history_deleted_range,
                                 keep
                             )
-                            await self.save_cline_messages()
+                            await self.save_satto_messages()
                     except Exception as e:
                         print(f"Error processing previous request: {e}")
 
@@ -472,8 +468,8 @@ class PyCline:
         """
         try:
             self.api_conversation_history = load_api_conversation_history(self.task_id)
-            self.cline_messages = load_cline_messages(self.task_id)
-            return len(self.api_conversation_history) > 0 or len(self.cline_messages) > 0
+            self.satto_messages = load_satto_messages(self.task_id)
+            return len(self.api_conversation_history) > 0 or len(self.satto_messages) > 0
         except Exception as e:
             print(f"Failed to load history: {e}")
             return False

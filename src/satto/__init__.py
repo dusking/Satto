@@ -1,7 +1,7 @@
 """
-PyCline package initialization.
+Satto package initialization.
 """
-from .core.pycline import PyCline
+from .core.satto import Satto
 from .core.mcp import McpHub
 
 from .core.assistant_message import (
@@ -15,7 +15,7 @@ from .core.assistant_message import (
 )
 
 __all__ = [
-    'PyCline',
+    'Satto',
     'WriteToFileTool',
     'ReadFileTool',
     'ListFilesTool',

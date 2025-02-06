@@ -1,4 +1,4 @@
-# Pycline
+# Satto
 
 ## Requirements
 
@@ -15,7 +15,7 @@
 ## Installation
 
 ```bash
-pip install pycline
+pip install satto
 ```
 
 ## Features

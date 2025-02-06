@@ -7,11 +7,11 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_PATH = "~/.config/pycline/config.json"
+DEFAULT_CONFIG_PATH = "~/.config/satto/config.json"
 
 
 class Config:
-    """Represents the configuration for the PyCline CLI."""
+    """Represents the configuration for the Satto CLI."""
 
     def __init__(self, path: Optional[Path] = None):
         """Initialize the Config object.

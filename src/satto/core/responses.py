@@ -1,9 +1,10 @@
-"""Response formatting utilities for PyCline."""
+"""Response formatting utilities for Satto."""
 import os
 from typing import List, Optional, Union, Dict, Any
 import difflib
 import base64
 from urllib.parse import urlparse
+from ..utils.path import to_posix_path, are_paths_equal
 
 def format_tool_denied() -> str:
     """Format response for when user denies a tool operation."""
@@ -76,10 +77,6 @@ def format_images_into_blocks(images: Optional[List[str]] = None) -> List[Dict[s
 
 def format_files_list(absolute_path: str, files: List[str], did_hit_limit: bool) -> str:
     """Format list of files with proper sorting and path handling."""
-    def to_posix_path(path: str) -> str:
-        """Convert path to POSIX format."""
-        return path.replace(os.sep, '/')
-    
     sorted_files = []
     for file in files:
         # Convert absolute path to relative path

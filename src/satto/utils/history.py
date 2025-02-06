@@ -10,7 +10,7 @@ def ensure_history_dir_exists() -> str:
     Returns:
         str: Path to the history directory
     """
-    history_dir = os.path.expanduser("~/.config/pycline/history")
+    history_dir = os.path.expanduser("~/.config/satto/history")
     os.makedirs(history_dir, exist_ok=True)
     return history_dir
 
@@ -55,8 +55,8 @@ def load_api_conversation_history(task_id: str) -> List[Dict]:
             return json.load(f)
     return []
 
-def save_cline_messages(task_id: str, messages: List[Dict]) -> None:
-    """Save the Cline UI messages to disk.
+def save_satto_messages(task_id: str, messages: List[Dict]) -> None:
+    """Save the Satto UI messages to disk.
     
     Args:
         task_id: The unique identifier for the task
@@ -67,8 +67,8 @@ def save_cline_messages(task_id: str, messages: List[Dict]) -> None:
     with open(messages_file, "w", encoding="utf-8") as f:
         json.dump(messages, f, indent=2)
 
-def load_cline_messages(task_id: str) -> List[Dict]:
-    """Load the Cline UI messages from disk.
+def load_satto_messages(task_id: str) -> List[Dict]:
+    """Load the Satto UI messages from disk.
     
     Args:
         task_id: The unique identifier for the task
