@@ -79,7 +79,7 @@ class ExecuteCommandTool:
             bool: True if approved, False if denied
         """
         response = await self.satto.ask("command", command)
-        return response.get("response") == "yesButtonClicked"
+        return response.get("response") == "yesClicked"
 
     async def execute(self, params: Dict[str, str]) -> ToolResult:
         """
@@ -99,17 +99,6 @@ class ExecuteCommandTool:
 
             command = params['command']
             requires_approval = params['requires_approval'].lower() == 'true'
-
-            # Check if command should be auto-approved
-            if self.should_auto_approve(requires_approval):
-                self.satto.consecutive_auto_approved_requests_count += 1
-            else:
-                # Ask for user approval
-                if not await self.ask_approval(command):
-                    return ToolResult(
-                        success=False,
-                        message=format_tool_denied()
-                    )
 
             try:
                 # Execute the command and capture output

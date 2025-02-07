@@ -213,18 +213,70 @@ class Satto:
             ]
             self.consecutive_mistake_count += 1
 
+    def should_auto_approve_tool(self, tool_name: str) -> bool:
+        """Check if a tool should be auto-approved based on settings.
+        
+        Args:
+            tool_name: Name of the tool to check
+            
+        Returns:
+            bool: Whether the tool should be auto-approved
+        """
+        if self.auto_approval_settings.enabled:
+            if tool_name in ["read_file", "list_files", "list_code_definition_names", "search_files"]:
+                return self.auto_approval_settings.actions['read_files']
+            elif tool_name in ["write_to_file", "replace_in_file"]:
+                return self.auto_approval_settings.actions['edit_files']
+            elif tool_name == "execute_command":
+                return self.auto_approval_settings.actions['execute_commands']
+            elif tool_name == "browser_action":
+                return self.auto_approval_settings.actions['use_browser']
+            elif tool_name in ["access_mcp_resource", "use_mcp_tool"]:
+                return self.auto_approval_settings.actions['use_mcp']
+        return False
+
+    def show_notification(self, subtitle: str, message: str) -> None:
+        """Show a system notification if enabled in auto-approval settings.
+        
+        Args:
+            subtitle: The notification subtitle
+            message: The notification message
+        """
+            
+        # if self.auto_approval_settings.enabled and self.auto_approval_settings.enable_notifications:
+            # In a real implementation this would show a system notification
+            # For now we just print to console
+        print(f"{subtitle}: {message}")
+
     async def recursively_make_satto_requests(self, user_content, include_file_details, is_new_task):     
         if self.abort:
             raise Exception("Satto instance aborted")
 
         if self.consecutive_mistake_count >= 3:
+            self.show_notification(
+                "Error",
+                "Satto is having trouble. Exiting task run."
+            )
             next_user_content = [
                 {
                     "type": "text",
                     "text": format_too_many_mistakes("You seem to be having trouble. Please review the previous messages and try again.")
                 }
             ]
-            return False
+            return True
+
+        if (self.auto_approval_settings.enabled and 
+            self.consecutive_auto_approved_requests_count >= self.auto_approval_settings.max_requests):
+            self.show_notification(
+                "Max Requests Reached",
+                f"Satto has auto-approved {self.auto_approval_settings.max_requests} API requests."
+            )
+            response = await self.ask(
+                "auto_approval_max_req_reached",
+                f"Satto has auto-approved {self.auto_approval_settings.max_requests} API requests. Would you like to reset the count and proceed with the task?"
+            )
+            # If we get past here, it means the user approved and did not start a new task
+            self.consecutive_auto_approved_requests_count = 0
 
         await self.add_to_api_conversation_history({
             "role": "user",
@@ -263,6 +315,80 @@ class Satto:
                     tool_description = f"[{block.name}]"
                     result = None
                     
+                    # Check for auto-approval before executing any tool
+                    auto_approved = False
+                    requires_approval = True  # Default to requiring approval
+                    
+                    if block.name == "execute_command":
+                        requires_approval = block.params.get('requires_approval', 'true').lower() == 'true'
+                        auto_approved = (not requires_approval and 
+                                      self.should_auto_approve_tool(block.name) and
+                                      self.consecutive_auto_approved_requests_count < self.auto_approval_settings.max_requests)
+                    else:
+                        auto_approved = (self.should_auto_approve_tool(block.name) and
+                                       self.consecutive_auto_approved_requests_count < self.auto_approval_settings.max_requests)
+
+                    if auto_approved:
+                        self.consecutive_auto_approved_requests_count += 1
+                    elif requires_approval:
+                                                
+                        # If auto-approval is enabled but this tool wasn't auto-approved, send notification
+                        if block.name == "write_to_file":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to {'edit' if os.path.exists(os.path.join(self.cwd, block.params.get('path', ''))) else 'create'} {os.path.basename(block.params.get('path', ''))}"
+                            )
+                        elif block.name == "replace_in_file":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to edit {os.path.basename(block.params.get('path', ''))}"
+                            )
+                        elif block.name == "read_file":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to read {os.path.basename(block.params.get('path', ''))}"
+                            )
+                        elif block.name == "list_files":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to view directory {os.path.basename(block.params.get('path', ''))}/"
+                            )
+                        elif block.name == "search_files":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to search files in {os.path.basename(block.params.get('path', ''))}/"
+                            )
+                        elif block.name == "execute_command":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to execute a command: {block.params.get('command', '')}"
+                            )
+                        elif block.name == "browser_action" and block.params.get('action') == "launch":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to use a browser and launch {block.params.get('url', '')}"
+                            )
+                        elif block.name == "use_mcp_tool":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to use {block.params.get('tool_name', '')} on {block.params.get('server_name', '')}"
+                            )
+                        elif block.name == "access_mcp_resource":
+                            self.show_notification(
+                                "Approval Required",
+                                f"Satto wants to access {block.params.get('uri', '')} on {block.params.get('server_name', '')}"
+                            )
+
+                        # Ask for approval                        
+                        response = await self.ask("tool_approval", f"Approve {block.name}?")
+                        if response.get("response") != "yesClicked":
+                            # User denied the tool use
+                            next_user_content.append({
+                                "type": "text",
+                                "text": format_tool_denied()
+                            })
+                            return False
+                                                
                     # Clean up model outputs before passing to tools
                     if block.name == "write_to_file" and 'content' in block.params:
                         block.params['content'] = fix_model_html_escaping(block.params['content'])
@@ -283,9 +409,17 @@ class Satto:
                     elif block.name == "attempt_completion":
                         result = self.attempt_completion_tool.execute(block.params)
                     elif block.name == "execute_command":
+                        # If command was auto-approved, set a timeout to notify user if it runs too long
+                        if auto_approved:
+                            async def check_command_timeout():
+                                await asyncio.sleep(30)  # 30 second timeout
+                                self.show_notification(
+                                    "Command is still running",
+                                    "An auto-approved command has been running for 30s, and may need your attention."
+                                )
+                            asyncio.create_task(check_command_timeout())
+                            
                         result = await self.execute_command_tool.execute(block.params)
-                        if result.success and self.auto_approval_settings.enabled and self.auto_approval_settings.actions['execute_commands']:
-                            self.consecutive_auto_approved_requests_count += 1
                     elif block.name == "ask_followup_question":
                         result = self.ask_followup_question_tool.execute(block.params)
                     elif block.name == "plan_mode_response":
@@ -331,9 +465,7 @@ class Satto:
                                         "text": formatted_content
                                     })
                             
-                            if block.name == "attempt_completion":
-                                return True
-                            elif block.name == "ask_followup_question":
+                            if block.name in ["attempt_completion", "ask_followup_question", "execute_command"]:
                                 return True
                         
                         if hasattr(result, 'success') and not result.success:
@@ -481,10 +613,23 @@ class Satto:
             return False
 
     async def ask(self, question_type: str, error_message: str) -> Dict[str, str]:
-        """Ask the user a question and get their response."""
-        # In a real implementation this would show a UI prompt
-        # For now we'll simulate always choosing to retry
-        return {"response": "yesButtonClicked"}
+        """Ask the user a question and get their response.
+        
+        Args:
+            question_type: Type of question being asked
+            error_message: Message to display to user
+            
+        Returns:
+            Dict with response key indicating user's choice
+        """
+        while True:
+            response = input(f"{error_message} (y/n): ").lower().strip()
+            if response in ['y', 'yes']:
+                return {"response": "yesClicked"}
+            elif response in ['n', 'no']:
+                return {"response": "noClicked"} 
+            print("Please answer with 'y' or 'n'")
+
 
     async def say(self, message_type: str):
         """Display a message to the user."""
