@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import asyncio
+import textwrap
 from importlib.metadata import version
 from satto import Satto
 
@@ -26,7 +27,9 @@ async def async_main():
         await client.start_task(args.prompt)
     else:  # resume
         await client.resume_task(args.prompt)
-    print(f"\nClaude's Done. cost: {client.get_cost()}")
+    print(textwrap.dedent(f"""Claude's Done. 
+cost: {client.get_cost()}.
+task_id: {client.get_task_id()}."""))
 
 
 def main():

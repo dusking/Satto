@@ -138,6 +138,15 @@ def get_latest_task() -> Optional[Dict]:
     tasks = get_task_history()
     return tasks[0] if tasks else None
 
+def get_latest_task_id() -> Optional[str]:
+    """Get the ID of the most recent task.
+    
+    Returns:
+        Optional[str]: The latest task ID or None if no tasks exist
+    """
+    latest_task = get_latest_task()
+    return latest_task["id"] if latest_task else None
+
 def get_next_llm_response_number(task_id: str) -> int:
     """Get the next available LLM response number for a task.
     

@@ -9,8 +9,9 @@ from .history import (
     load_api_conversation_history,
     save_satto_messages,
     load_satto_messages,
-    get_task_history,
-    get_latest_task
+    get_task_history,    
+    get_latest_task,
+    get_latest_task_id
 )
 
 __all__ = [

@@ -22,7 +22,8 @@ from ..utils.history import (
     load_api_conversation_history,
     save_satto_messages,
     load_satto_messages,
-    get_latest_task
+    get_latest_task,
+    get_latest_task_id
 )
 from ..utils.cost import calculate_api_cost
 from ..utils.history import save_llm_response
@@ -114,6 +115,14 @@ class Satto:
         else:
             raise ValueError(f"Unsupported API provider: {api_provider}")
 
+    def get_task_id(self) -> Optional[str]:
+        """Get the ID of the most recent task.
+        
+        Returns:
+            Optional[str]: The latest task ID or None if no tasks exist
+        """
+        return get_latest_task_id()
+    
     async def add_to_api_conversation_history(self, message: Dict) -> None:
         """Add a message to the API conversation history and save it.
         
