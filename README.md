@@ -20,6 +20,44 @@ Satto is a powerful CLI tool that helps you accomplish tasks using natural langu
 pip install git+https://github.com/dusking/satto.git
 ```
 
+## Configuration
+
+Satto requires a configuration file located at `~/.config/satto/config.json`. Create this file with the following default values:
+
+```json
+{
+    "auto_approval": {
+        "enabled": true,
+        "actions": {
+            "read_files": true,
+            "edit_files": true,
+            "execute_commands": false,
+            "use_browser": false,
+            "use_mcp": false,
+            "attempt_completion": true
+        },
+        "max_requests": 20,
+        "enable_notifications": false
+    },
+    "auth_anthropic": {
+        "api_key": "sk-ant-***",
+        "api_provider": "anthropic",
+        "model_id": "claude-3-5-sonnet-20241022"
+    }
+}
+```
+
+The configuration includes:
+- `auto_approval`: Settings for automatic approval of different actions
+  - `enabled`: Enable/disable auto-approval globally
+  - `actions`: Specific actions that can be auto-approved
+  - `max_requests`: Maximum number of auto-approved requests per session
+  - `enable_notifications`: Enable/disable notifications for auto-approved actions
+- `auth_anthropic`: Authentication settings for Anthropic's API
+  - `api_key`: Your Anthropic API key
+  - `api_provider`: API provider (currently supports "anthropic")
+  - `model_id`: The model ID to use
+
 ## Features
 
 - Natural language task execution
