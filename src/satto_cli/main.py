@@ -19,15 +19,8 @@ async def async_main():
     resume_parser = subparsers.add_parser('cont', help='Continue an existing task')
     resume_parser.add_argument("prompt", type=str, help="Enter a prompt to send to Claude")
     
-    args = parser.parse_args()
-    
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise ValueError("API key must be provided either directly or through ANTHROPIC_API_KEY environment variable")
-    client = Satto(
-        api_provider="anthropic", 
-        api_key=api_key,
-        model_id="claude-3-5-sonnet-20241022")
+    args = parser.parse_args()    
+    client = Satto(api_provider="anthropic")
     
     if args.command == 'start':
         await client.start_task(args.prompt)

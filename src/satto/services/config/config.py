@@ -3,6 +3,10 @@ import json
 import logging
 from typing import Optional
 from pathlib import Path
+from dataclasses import asdict
+
+from .auto_approval_settings import AutoApprovalSettings
+from .auth_anthropic_settings import AuthAnthropicSettings
 
 
 logger = logging.getLogger(__name__)
@@ -24,15 +28,30 @@ class Config:
             If not, the class creates the necessary directory structure for the configuration file.
         """
         self._path: Path = (Path(path or DEFAULT_CONFIG_PATH)).expanduser()
-        self.username: Optional[str] = None
-        self.password: Optional[str] = None
-        self.api_key: Optional[str] = None
-        self.language: str = "en"
+        self.auto_approval: AutoApprovalSettings = AutoApprovalSettings()
+        self.auth_anthropic: Optional[AuthAnthropicSettings] = None
 
         if self._path.exists():
-            data = json.loads(self._path.read_text())
-            self.__dict__.update(data)
+            self.load_config()
 
+    def load_config(self):
+        """Load configuration from file and update instance attributes."""
+        data = json.loads(self._path.read_text())
+        
+        # Handle auto_approval settings separately
+        auto_approval_data = data.pop('auto_approval', {})
+        if auto_approval_data:
+            self.auto_approval = AutoApprovalSettings.from_dict(auto_approval_data)
+        
+        auth_anthropic_data = data.pop('auth_anthropic', None)
+        if auth_anthropic_data:
+            self.auth_anthropic = AuthAnthropicSettings.from_dict(auth_anthropic_data)
+            
+        # Update remaining attributes
+        for key, value in data.items():
+            if not key.startswith('_'):
+                setattr(self, key, value)
+                
     def verify_config_dir(self):
         """Verify the existence of the directory specified by self._path.
 
@@ -59,6 +78,16 @@ class Config:
         if not self.verify_config_dir():
             logger.error("Failed to save config.")
             return False
-        data = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
+        # Create a dictionary of the config data
+        data = {k: v for k, v in self.__dict__.items() 
+                if not k.startswith('_')}
+        
+        # Convert dataclass instances to dict
+        data['auto_approval'] = asdict(self.auto_approval)
+        if self.auth_anthropic:
+            data['auth_anthropic'] = asdict(self.auth_anthropic)
+
+        # Save to file
         self._path.write_text(json.dumps(data, indent=4))
         return True

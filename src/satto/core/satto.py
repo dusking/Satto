@@ -5,7 +5,7 @@ import time
 from typing import Dict, Any, Optional, AsyncGenerator, Union, List, cast
 from weakref import WeakValueDictionary, ref
 from typing_extensions import Protocol
-from ..shared.auto_approval_settings import AutoApprovalSettings, DEFAULT_AUTO_APPROVAL_SETTINGS
+# from ..shared.auto_approval_settings import AutoApprovalSettings, DEFAULT_AUTO_APPROVAL_SETTINGS
 from .prompts.responses import (
     format_tool_denied,
     format_tool_denied_with_feedback,
@@ -24,12 +24,12 @@ from ..utils.history import (
     load_satto_messages,
     get_latest_task
 )
+from ..utils.cost import calculate_api_cost
 from ..utils.string import fix_model_html_escaping, remove_invalid_chars
+from ..services.config import Config
 from ..api.api_handler import build_api_handler
 from ..shared.api import ApiConfiguration
 from .prompts.system import SYSTEM_PROMPT, add_user_instructions
-from ..utils.cost import calculate_api_cost
-# from .mcp import McpHub
 from .assistant_message import parse_assistant_message
 from .assistant_message.write_to_file_tool import WriteToFileTool
 from .assistant_message.read_file_tool import ReadFileTool
@@ -43,27 +43,18 @@ from .assistant_message.ask_followup_question_tool import AskFollowupQuestionToo
 from .assistant_message.plan_mode_response_tool import PlanModeResponseTool
 
 
-class ApiStream(Protocol):
-    async def __aiter__(self):
-        ...
-    async def __anext__(self):
-        ...
-
-
 class Satto:
-    def __init__(self, api_provider: str, api_key: str, model_id: Optional[str] = None, base_url: Optional[str] = None, task_id: Optional[str] = None, load_latest: bool = True, auto_approval_settings: Optional[AutoApprovalSettings] = None):
+    def __init__(self, api_provider: str, task_id: Optional[str] = None, load_latest: bool = True):
         """Initialize Satto instance.
 
         Args:
-            api_provider: The API provider to use (e.g. "anthropic", "openai")
-            api_key: API key for authentication
-            model_id: Optional model identifier
-            base_url: Optional base URL for the API
+            api_provider: The API provider to use (e.g. "anthropic", "openai")           
             task_id: Optional task ID for resuming an existing task. If not provided and load_latest is True, will attempt to load latest task ID.
             load_latest: Whether to load the latest task ID if no task_id is provided. Note that actual task history loading is handled by resume_task().
         """
+        self.config = Config()
         self.cwd = os.getcwd()
-        self.auto_approval_settings = auto_approval_settings or DEFAULT_AUTO_APPROVAL_SETTINGS
+        self.auto_approval_settings = self.config.auto_approval
         self.consecutive_auto_approved_requests_count = 0
         self.api_handler = None
         self.mcp_hub = None
@@ -72,6 +63,8 @@ class Satto:
         self.custom_instructions = None
         self.task = ""
         self.abort = False
+        
+        print(self.auto_approval_settings)
 
         # If no task_id provided and load_latest is True, try to load latest task
         if not task_id and load_latest:
@@ -108,13 +101,19 @@ class Satto:
         self.conversation_history_deleted_range = None
         self.is_waiting_for_first_chunk = False
         self.did_automatically_retry_failed_api_request = False
-        config: ApiConfiguration = {
-            "api_provider": api_provider,
-            "api_key": api_key,
-            "api_model_id": model_id,
-            "anthropic_base_url": base_url
-        }
-        self.api_handler = build_api_handler(config)
+        
+        if api_provider == "anthropic":
+            api_key = self.config.auth_anthropic.api_key
+            model_id = self.config.auth_anthropic.model_id
+            config: ApiConfiguration = {
+                "api_provider": api_provider,
+                "api_key": api_key,
+                "api_model_id": model_id,
+                "anthropic_base_url": None
+            }
+            self.api_handler = build_api_handler(config)
+        else:
+            raise ValueError(f"Unsupported API provider: {api_provider}")
 
     async def add_to_api_conversation_history(self, message: Dict) -> None:
         """Add a message to the API conversation history and save it.
@@ -233,6 +232,8 @@ class Satto:
                 return self.auto_approval_settings.actions['use_browser']
             elif tool_name in ["access_mcp_resource", "use_mcp_tool"]:
                 return self.auto_approval_settings.actions['use_mcp']
+            elif tool_name == "attempt_completion":
+                return self.auto_approval_settings.actions['attempt_completion']
         return False
 
     def show_notification(self, subtitle: str, message: str) -> None:
