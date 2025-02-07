@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional
 
 from ...services.glob.list_files import list_files
+from ...services.config import Config
 
 @dataclass
 class ListFilesResult:
@@ -22,6 +23,7 @@ class ListFilesTool:
             cwd: Current working directory
         """
         self.cwd = cwd
+        self.list_files_config = Config().task_list_files
         
     async def execute(self, params: Dict[str, Any]) -> ListFilesResult:
         """Execute the list_files tool.
@@ -59,7 +61,7 @@ class ListFilesTool:
             recursive = params.get('recursive', False)
             limit = 200  # Same limit as TypeScript version
             
-            files, hit_limit = await list_files(path, recursive, limit)
+            files, hit_limit = await list_files(path, recursive, limit, self.list_files_config)
             
             # Convert absolute paths to relative for display
             relative_files = []

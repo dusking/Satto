@@ -6,37 +6,23 @@ from typing import List, Tuple, Set
 import glob
 import fnmatch
 from ...utils.path import are_paths_equal, to_posix_path
+from ...services.config.list_files_settings import ListFilesSettings
 
-DIRS_TO_IGNORE = [
-    "node_modules",
-    "__pycache__",
-    "env",
-    "venv",
-    "target/dependency",
-    "build/dependencies",
-    "dist",
-    "out",
-    "bundle",
-    "vendor",
-    "tmp",
-    "temp",
-    "deps",
-    "pkg",
-    "Pods",
-    ".*",  # Hidden directories
-]
-
-async def list_files(dir_path: str, recursive: bool, limit: int) -> Tuple[List[str], bool]:
+async def list_files(dir_path: str, recursive: bool, limit: int, settings: ListFilesSettings = None) -> Tuple[List[str], bool]:
     """List files in a directory with smart filtering and traversal.
     
     Args:
         dir_path: Directory path to list files from
         recursive: Whether to recursively list files in subdirectories
         limit: Maximum number of files to return
+        settings: Optional settings for file listing behavior
         
     Returns:
         Tuple of (list of file paths, whether limit was hit)
     """
+    
+    print(f">>> {settings.dirs_to_ignore}")
+    
     absolute_path = os.path.abspath(dir_path)
     
     # Do not allow listing files in root or home directory
@@ -49,7 +35,7 @@ async def list_files(dir_path: str, recursive: bool, limit: int) -> Tuple[List[s
         return [home_dir], False
 
     if recursive:
-        files, hit_limit = await globby_level_by_level(absolute_path, limit)
+        files, hit_limit = await globby_level_by_level(absolute_path, limit, settings)
     else:
         # For non-recursive, just get immediate files/dirs
         pattern = os.path.join(absolute_path, "*")
@@ -65,12 +51,13 @@ async def list_files(dir_path: str, recursive: bool, limit: int) -> Tuple[List[s
         
     return files, hit_limit
 
-async def globby_level_by_level(dir_path: str, limit: int) -> Tuple[List[str], bool]:
+async def globby_level_by_level(dir_path: str, limit: int, settings: ListFilesSettings = None) -> Tuple[List[str], bool]:
     """Breadth-first traversal of directory structure level by level up to a limit.
     
     Args:
         dir_path: Root directory to start traversal from
         limit: Maximum number of files to return
+        settings: Optional settings for file listing behavior
         
     Returns:
         Tuple of (list of file paths, whether limit was hit)
@@ -78,13 +65,16 @@ async def globby_level_by_level(dir_path: str, limit: int) -> Tuple[List[str], b
     results: Set[str] = set()
     queue: List[str] = [os.path.join(dir_path, "*")]
     
+    if settings is None:
+        settings = ListFilesSettings()
+        
     async def globbing_process() -> List[str]:
         while queue and len(results) < limit:
             pattern = queue.pop(0)
             
             # Check if pattern should be ignored based on gitignore-style rules
             should_ignore = False
-            for ignore_pattern in DIRS_TO_IGNORE:
+            for ignore_pattern in settings.dirs_to_ignore:
                 if fnmatch.fnmatch(pattern, f"**/{ignore_pattern}/**"):
                     should_ignore = True
                     break

@@ -7,6 +7,7 @@ from dataclasses import asdict
 
 from .auto_approval_settings import AutoApprovalSettings
 from .auth_anthropic_settings import AuthAnthropicSettings
+from .list_files_settings import ListFilesSettings
 
 
 logger = logging.getLogger(__name__)
@@ -28,8 +29,10 @@ class Config:
             If not, the class creates the necessary directory structure for the configuration file.
         """
         self._path: Path = (Path(path or DEFAULT_CONFIG_PATH)).expanduser()
+        self.max_consecutive_mistake_count: int = 3
         self.auto_approval: AutoApprovalSettings = AutoApprovalSettings()
         self.auth_anthropic: Optional[AuthAnthropicSettings] = None
+        self.task_list_files: ListFilesSettings = ListFilesSettings()
 
         if self._path.exists():
             self.load_config()
@@ -46,6 +49,10 @@ class Config:
         auth_anthropic_data = data.pop('auth_anthropic', None)
         if auth_anthropic_data:
             self.auth_anthropic = AuthAnthropicSettings.from_dict(auth_anthropic_data)
+            
+        task_list_files_data = data.pop('task_list_files', {})
+        if task_list_files_data:
+            self.list_files = ListFilesSettings.from_dict(task_list_files_data)
             
         # Update remaining attributes
         for key, value in data.items():
@@ -87,6 +94,7 @@ class Config:
         data['auto_approval'] = asdict(self.auto_approval)
         if self.auth_anthropic:
             data['auth_anthropic'] = asdict(self.auth_anthropic)
+        data['list_files'] = asdict(self.list_files)
 
         # Save to file
         self._path.write_text(json.dumps(data, indent=4))
