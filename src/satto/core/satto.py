@@ -310,7 +310,7 @@ class Satto:
             next_user_content = []
             
             # Print all text blocks and handle tool uses
-            for block in blocks:
+            for block in blocks:                
                 if block.type == "text":
                     if hasattr(block, 'block_type') and block.block_type == "thinking":
                         print(f"THINKING: \n{block.content}\n")

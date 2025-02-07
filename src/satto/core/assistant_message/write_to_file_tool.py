@@ -124,8 +124,10 @@ class WriteToFileTool:
             diff_text = ""
             if exists:
                 diff = self._get_diff(original_content or '', content, str(rel_path)).strip()
-                diff = diff or "[No Changes Found]"
+                diff = diff or f"--- a/{str(rel_path)}\n+++ b/{str(rel_path)}\n--No Changes Found"
                 diff_text = f"\n\nChanges made:\n{diff}"
+            else:
+                diff_text = f"\n\nChanges made:\n--New File Created"
 
             return ToolResult(
                 success=True,
