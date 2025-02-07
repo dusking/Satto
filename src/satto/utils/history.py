@@ -137,3 +137,65 @@ def get_latest_task() -> Optional[Dict]:
     """
     tasks = get_task_history()
     return tasks[0] if tasks else None
+
+def get_next_llm_response_number(task_id: str) -> int:
+    """Get the next available LLM response number for a task.
+    
+    Args:
+        task_id: The unique identifier for the task
+        
+    Returns:
+        int: The next available response number
+    """
+    task_dir = ensure_task_dir_exists(task_id)
+    existing_responses = [f for f in os.listdir(task_dir) if f.startswith("LLM_response_")]
+    if not existing_responses:
+        return 1
+    
+    numbers = [int(f.split("_")[-1]) for f in existing_responses]
+    return max(numbers) + 1
+
+def save_llm_response(task_id: str, response: Union[str, Dict]) -> None:
+    """Save an LLM response to disk with an incremental number.
+    
+    Args:
+        task_id: The unique identifier for the task
+        response: The LLM response to save (string or dict)
+    """
+    task_dir = ensure_task_dir_exists(task_id)
+    response_number = get_next_llm_response_number(task_id)
+    response_file = os.path.join(task_dir, f"LLM_response_{response_number}")
+    
+    with open(response_file, "w", encoding="utf-8") as f:
+        if isinstance(response, dict):
+            json.dump(response, f, indent=2)
+        else:
+            f.write(response)
+
+def load_llm_responses(task_id: str) -> List[Union[str, Dict]]:
+    """Load all LLM responses for a task from disk.
+    
+    Args:
+        task_id: The unique identifier for the task
+        
+    Returns:
+        List[Union[str, Dict]]: List of LLM responses
+    """
+    task_dir = ensure_task_dir_exists(task_id)
+    responses = []
+    
+    for file in sorted(os.listdir(task_dir)):
+        if not file.startswith("LLM_response_"):
+            continue
+            
+        file_path = os.path.join(task_dir, file)
+        with open(file_path, "r", encoding="utf-8") as f:
+            try:
+                response = json.load(f)
+            except json.JSONDecodeError:
+                # If not JSON, read as plain text
+                f.seek(0)
+                response = f.read()
+            responses.append(response)
+            
+    return responses

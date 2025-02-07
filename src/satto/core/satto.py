@@ -25,6 +25,7 @@ from ..utils.history import (
     get_latest_task
 )
 from ..utils.cost import calculate_api_cost
+from ..utils.history import save_llm_response
 from ..utils.string import fix_model_html_escaping, remove_invalid_chars
 from ..services.config import Config
 from ..api.api_handler import build_api_handler
@@ -64,8 +65,6 @@ class Satto:
         self.task = ""
         self.abort = False
         
-        print(self.auto_approval_settings)
-
         # If no task_id provided and load_latest is True, try to load latest task
         if not task_id and load_latest:
             latest_task = get_latest_task()
@@ -572,6 +571,10 @@ class Satto:
         )
 
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
+        
+        # Save LLM response
+        if response and 'text' in response:            
+            save_llm_response(self.task_id, response.text)
 
         return response
 
