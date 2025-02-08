@@ -35,4 +35,4 @@ def calculate_api_cost(
     output_cost = (((model_info.get('output_price') or 0) / 1_000_000)) * output_tokens
     total_cost = cache_writes_cost + cache_reads_cost + base_input_cost + output_cost
 
-    return total_cost
+    return round(total_cost, 3)

@@ -14,7 +14,12 @@ class AnthropicHandler:
             api_key=self.options["api_key"],
             base_url=self.options.get("anthropic_base_url")
         )
-        self.usage = None
+        self.usage = {
+                    "input_tokens": 0,                    
+                    "output_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cache_read_tokens": 0,
+                }
         self.start_time = None
         self.chunk_count = None
 
@@ -39,23 +44,13 @@ class AnthropicHandler:
         )
 
         full_text = ""
-        self.usage = {
-                    "input_tokens": 0,                    
-                    "output_tokens": 0,
-                    "cache_write_tokens": 0,
-                    "cache_read_tokens": 0,
-                }
+      
         self.chunk_count = 0
         self.start_time = time.time()
 
         for chunk in stream:            
             if not hasattr(chunk, 'type'):
                 continue
-            
-            if hasattr(chunk, 'message'):
-                print("AA ", chunk.message.usage)
-            if hasattr(chunk, 'usage'):
-                print("BB ", chunk.usage)
                 
             self.print_progress()
             if chunk.type == 'message_start':       
