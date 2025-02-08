@@ -7,6 +7,7 @@ from dataclasses import asdict
 
 from .auto_approval_settings import AutoApprovalSettings
 from .auth_anthropic_settings import AuthAnthropicSettings
+from .auth_openai_native_settings import AuthOpenAINativeSettings
 from .list_files_settings import ListFilesSettings
 
 
@@ -32,6 +33,7 @@ class Config:
         self.max_consecutive_mistake_count: int = 3
         self.auto_approval: AutoApprovalSettings = AutoApprovalSettings()
         self.auth_anthropic: Optional[AuthAnthropicSettings] = None
+        self.auth_openai_native: Optional[AuthOpenAINativeSettings] = None
         self.task_list_files: ListFilesSettings = ListFilesSettings()
 
         if self._path.exists():
@@ -49,6 +51,10 @@ class Config:
         auth_anthropic_data = data.pop('auth_anthropic', None)
         if auth_anthropic_data:
             self.auth_anthropic = AuthAnthropicSettings.from_dict(auth_anthropic_data)
+            
+        auth_openai_native = data.pop('auth_openai_native', None)
+        if auth_openai_native:
+            self.auth_openai_native = AuthOpenAINativeSettings.from_dict(auth_openai_native)
             
         task_list_files_data = data.pop('task_list_files', {})
         if task_list_files_data:

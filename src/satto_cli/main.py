@@ -27,6 +27,7 @@ async def async_main():
     
     args = parser.parse_args()    
     client = Satto(api_provider="anthropic")
+    # client = Satto(api_provider="openai-native")
     
     log_print.header(f"{args.command} task: {args.prompt}")
     

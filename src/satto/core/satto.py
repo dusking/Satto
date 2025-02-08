@@ -116,6 +116,28 @@ class Satto:
                 "anthropic_base_url": None
             }
             self.api_handler = build_api_handler(config)
+        elif api_provider == "openai":
+            api_key = self.config.auth_openai.api_key
+            model_id = self.config.auth_openai.model_id
+            base_url = self.config.auth_openai.base_url
+            azure_api_version = self.config.auth_openai.azure_api_version
+            config: ApiConfiguration = {
+                "api_provider": api_provider,
+                "openai_api_key": api_key,
+                "openai_model_id": model_id,
+                "openai_base_url": base_url,
+                "azure_api_version": azure_api_version
+            }
+            self.api_handler = build_api_handler(config)
+        elif api_provider == "openai-native":
+            api_key = self.config.auth_openai_native.api_key
+            model_id = self.config.auth_openai_native.model_id
+            config: ApiConfiguration = {
+                "api_provider": api_provider,
+                "openai_native_api_key": api_key,
+                "api_model_id": model_id
+            }
+            self.api_handler = build_api_handler(config)
         else:
             raise ValueError(f"Unsupported API provider: {api_provider}")
 

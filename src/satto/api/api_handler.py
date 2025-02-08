@@ -1,51 +1,16 @@
-from typing import Protocol, Dict, Any, Union
 from .providers.anthropic import AnthropicHandler
-# from .providers.openrouter import OpenRouterHandler
-# from .providers.bedrock import AwsBedrockHandler
-# from .providers.vertex import VertexHandler
-# from .providers.openai import OpenAiHandler
-# from .providers.ollama import OllamaHandler
-# from .providers.lmstudio import LmStudioHandler
-# from .providers.gemini import GeminiHandler
-# from .providers.openai_native import OpenAiNativeHandler
-# from .providers.deepseek import DeepSeekHandler
-# from .providers.mistral import MistralHandler
-# from .providers.vscode_lm import VsCodeLmHandler
-from ..shared.dicts import DotDict
-from ..shared.api import ApiConfiguration, ModelInfo
+from .providers.openai import OpenAiHandler
+from .providers.openai_native import OpenAiNativeHandler
+from ..shared.api import ApiConfiguration
+from .providers.api_handler_base import ApiHandlerBase
 
 
-class ApiHandler(Protocol):
-    async def create_message(self, system_prompt: str, messages: list) -> Any:
-        pass
-
-    def get_model(self) -> DotDict[str, Union[str, ModelInfo]]:
-        pass
-
-
-class SingleCompletionHandler(Protocol):
-    async def complete_prompt(self, prompt: str) -> str:
-        pass
-
-
-def build_api_handler(configuration: ApiConfiguration) -> ApiHandler:
+def build_api_handler(configuration: ApiConfiguration) -> ApiHandlerBase:
     api_provider = configuration["api_provider"]
-    # handlers = {
-    #     "anthropic": AnthropicHandler,
-    #     "openrouter": OpenRouterHandler,
-    #     "bedrock": AwsBedrockHandler,
-    #     "vertex": VertexHandler,
-    #     "openai": OpenAiHandler,
-    #     "ollama": OllamaHandler,
-    #     "lmstudio": LmStudioHandler,
-    #     "gemini": GeminiHandler,
-    #     "openai-native": OpenAiNativeHandler,
-    #     "deepseek": DeepSeekHandler,
-    #     "mistral": MistralHandler,
-    #     "vscode-lm": VsCodeLmHandler,
-    # }
     handlers = {
-        "anthropic": AnthropicHandler,        
+        "anthropic": AnthropicHandler,
+        "openai": OpenAiHandler,
+        "openai-native": OpenAiNativeHandler,
     }
 
     handler_class = handlers.get(api_provider, AnthropicHandler)
