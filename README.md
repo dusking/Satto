@@ -43,6 +43,26 @@ Satto requires a configuration file located at `~/.config/satto/config.json`. Cr
         "api_key": "sk-ant-***",
         "api_provider": "anthropic",
         "model_id": "claude-3-5-sonnet-20241022"
+    },
+    "task_ist_files": {
+        "dirs_to_ignore": [
+            "node_modules",
+            "__pycache__",
+            "env",
+            "venv",
+            "target/dependency",
+            "build/dependencies",
+            "dist",
+            "out",
+            "bundle",
+            "vendor",
+            "tmp",
+            "temp",
+            "deps",
+            "pkg",
+            "Pods",
+            ".*"
+        ]
     }
 }
 ```
