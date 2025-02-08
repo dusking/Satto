@@ -1,4 +1,6 @@
 import asyncio
+import time
+import sys
 from anthropic import Anthropic
 from typing import AsyncGenerator, Dict, Any, List
 from ...shared.dicts import DotDict
@@ -29,16 +31,29 @@ class AnthropicHandler:
 
         full_text = ""
         usage = None
+        chunk_count = 0
+        start_time = time.time()
+
         for chunk in stream:
             if hasattr(chunk, 'type'):
                 if chunk.type == 'content_block_delta':
+                    chunk_count += 1
                     full_text += chunk.delta.text
+                    elapsed = time.time() - start_time
+                    sys.stdout.write(f"\rReceived {chunk_count} chunks in {elapsed:.2f}s")
+                    sys.stdout.flush()
                 elif chunk.type == 'message_delta':
                     if hasattr(chunk.usage, 'input_tokens'):
                         usage = {
                             "input_tokens": chunk.usage.input_tokens,
                             "output_tokens": chunk.usage.output_tokens
                         }
+                    elapsed = time.time() - start_time
+                    sys.stdout.write(f"\rReceived {chunk_count} chunks in {elapsed:.2f}s")
+                    sys.stdout.flush()
+
+        # Print newline after progress
+        print()
 
         if not usage:
             # Fallback if we didn't get usage info from the stream
