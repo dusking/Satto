@@ -25,6 +25,7 @@ from ..utils.history import (
     get_latest_task,
     get_latest_task_id
 )
+from ..utils.log_print import LogPrint
 from ..utils.cost import calculate_api_cost
 from ..utils.history import save_llm_response
 from ..utils.string import fix_model_html_escaping, remove_invalid_chars
@@ -43,6 +44,9 @@ from .assistant_message.attempt_completion_tool import AttemptCompletionTool
 from .assistant_message.execute_command_tool import ExecuteCommandTool
 from .assistant_message.ask_followup_question_tool import AskFollowupQuestionTool
 from .assistant_message.plan_mode_response_tool import PlanModeResponseTool
+
+
+log_print = LogPrint()
 
 
 class Satto:
@@ -313,9 +317,9 @@ class Satto:
             for block in blocks:                
                 if block.type == "text":
                     if hasattr(block, 'block_type') and block.block_type == "thinking":
-                        print(f"THINKING: \n{block.content}\n")
+                        log_print.info(f"THINKING: \n{block.content}\n")
                     else:
-                        print(f"TEXT: \n{block.content}\n")
+                        log_print.info(f"TEXT: \n{block.content}\n")
                     next_user_content.append({
                         "type": "text",
                         "text": block.content
@@ -454,7 +458,7 @@ class Satto:
                                 tool_description = f"[{block.name}]"
                             
                             if hasattr(result, 'message'):
-                                print(f"{block.name.replace('_', '').upper()} RESULT: \n{result.message}\n")
+                                log_print.info(f"{block.name.replace('_', '').upper()} RESULT: \n{result.message}\n")
                                 formatted_result = format_tool_result(f"{tool_description} Result: {result.message}")
                                 if isinstance(formatted_result, list):
                                     next_user_content.extend(formatted_result)

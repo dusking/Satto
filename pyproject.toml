@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "requests", 
     "prettytable", 
+    "colorama",
     "anthropic"]
 
 [project.optional-dependencies]

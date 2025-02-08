@@ -13,6 +13,8 @@ from .history import (
     get_latest_task,
     get_latest_task_id
 )
+from .log_print import LogPrint
+
 
 __all__ = [
     'fix_model_html_escaping',
