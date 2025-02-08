@@ -17,24 +17,39 @@ class AnthropicHandler:
         model = self.get_model()
         model_id = model["id"]
 
-        message = await asyncio.to_thread(
+        stream = await asyncio.to_thread(
             self.client.messages.create,
             model=model_id,
             max_tokens=model["info"].get("max_tokens", 8192),
             temperature=0,
             system=system_prompt,
-            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages]
+            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages],
+            stream=True
         )
-        
-        # Extract usage information
-        usage = {
-            "input_tokens": message.usage.input_tokens,
-            "output_tokens": message.usage.output_tokens
-        }
-        
+
+        full_text = ""
+        usage = None
+        for chunk in stream:
+            if hasattr(chunk, 'type'):
+                if chunk.type == 'content_block_delta':
+                    full_text += chunk.delta.text
+                elif chunk.type == 'message_delta':
+                    if hasattr(chunk.usage, 'input_tokens'):
+                        usage = {
+                            "input_tokens": chunk.usage.input_tokens,
+                            "output_tokens": chunk.usage.output_tokens
+                        }
+
+        if not usage:
+            # Fallback if we didn't get usage info from the stream
+            usage = {
+                "input_tokens": 0,
+                "output_tokens": 0
+            }
+
         return DotDict({
-            "type": "text", 
-            "text": message.content[0].text,
+            "type": "text",
+            "text": full_text,
             "usage": usage
         })
 
