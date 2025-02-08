@@ -72,6 +72,8 @@ class AnthropicHandler:
             elif chunk.type == 'content_block_stop':
                 break
 
+        self.usage["output_tokens"] += len(full_text.split())
+
         # Print newline after progress
         print()                
 
@@ -80,7 +82,7 @@ class AnthropicHandler:
             self.usage = {
                 "input_tokens": 0,
                 "output_tokens": 0
-            }        
+            }
         
         response = DotDict({
             "type": "text",
