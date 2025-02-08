@@ -4,7 +4,12 @@ import argparse
 import asyncio
 import textwrap
 from importlib.metadata import version
+
 from satto import Satto
+from satto.utils.log_print import LogPrint
+
+
+log_print = LogPrint()
 
 
 async def async_main():
@@ -23,11 +28,13 @@ async def async_main():
     args = parser.parse_args()    
     client = Satto(api_provider="anthropic")
     
+    log_print.header(f"{args.command} task: {args.prompt}")
+    
     if args.command == 'start':
         await client.start_task(args.prompt)
     else:  # resume
         await client.resume_task(args.prompt)
-    print(textwrap.dedent(f"""Claude's Done. 
+    log_print.info(textwrap.dedent(f"""Claude's Done. 
 cost: {client.get_cost()}.
 task_id: {client.get_task_id()}."""))
 

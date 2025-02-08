@@ -583,7 +583,9 @@ class Satto:
             self.conversation_history_deleted_range
         )
 
+        log_print.info(f"Creating LLM message")
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
+        log_print.info(f"Got LLM response\n")
         
         # Save LLM response
         if response and 'text' in response:            
