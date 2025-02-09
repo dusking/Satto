@@ -50,15 +50,15 @@ log_print = LogPrint()
 
 
 class Satto:
-    def __init__(self, api_provider: str, task_id: Optional[str] = None, load_latest: bool = True):
+    def __init__(self, task_id: Optional[str] = None, load_latest: bool = True):
         """Initialize Satto instance.
 
         Args:
-            api_provider: The API provider to use (e.g. "anthropic", "openai")           
             task_id: Optional task ID for resuming an existing task. If not provided and load_latest is True, will attempt to load latest task ID.
             load_latest: Whether to load the latest task ID if no task_id is provided. Note that actual task history loading is handled by resume_task().
         """
         self.config = Config()
+        self.api_provider = self.config.api_provider
         self.cwd = os.getcwd()
         self.auto_approval_settings = self.config.auto_approval
         self.consecutive_auto_approved_requests_count = 0
@@ -106,40 +106,41 @@ class Satto:
         self.is_waiting_for_first_chunk = False
         self.did_automatically_retry_failed_api_request = False
         
-        if api_provider == "anthropic":
+        print("AAAA", self.api_provider )
+        if self.api_provider == "anthropic":
             api_key = self.config.auth_anthropic.api_key
             model_id = self.config.auth_anthropic.model_id
             config: ApiConfiguration = {
-                "api_provider": api_provider,
+                "api_provider": self.api_provider,
                 "api_key": api_key,
                 "api_model_id": model_id,
                 "anthropic_base_url": None
             }
             self.api_handler = build_api_handler(config)
-        elif api_provider == "openai":
+        elif self.api_provider == "openai":
             api_key = self.config.auth_openai.api_key
             model_id = self.config.auth_openai.model_id
             base_url = self.config.auth_openai.base_url
             azure_api_version = self.config.auth_openai.azure_api_version
             config: ApiConfiguration = {
-                "api_provider": api_provider,
+                "api_provider": self.api_provider,
                 "openai_api_key": api_key,
                 "openai_model_id": model_id,
                 "openai_base_url": base_url,
                 "azure_api_version": azure_api_version
             }
             self.api_handler = build_api_handler(config)
-        elif api_provider == "openai-native":
+        elif self.api_provider == "openai-native":
             api_key = self.config.auth_openai_native.api_key
             model_id = self.config.auth_openai_native.model_id
             config: ApiConfiguration = {
-                "api_provider": api_provider,
+                "api_provider": self.api_provider,
                 "openai_native_api_key": api_key,
                 "api_model_id": model_id
             }
             self.api_handler = build_api_handler(config)
         else:
-            raise ValueError(f"Unsupported API provider: {api_provider}")
+            raise ValueError(f"Unsupported API provider: {self.api_provider}")
 
     def get_task_id(self) -> Optional[str]:
         """Get the ID of the most recent task.

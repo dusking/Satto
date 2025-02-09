@@ -26,8 +26,7 @@ async def async_main():
     resume_parser.add_argument("prompt", type=str, help="Enter a prompt to send to Claude")
     
     args = parser.parse_args()    
-    client = Satto(api_provider="anthropic")
-    # client = Satto(api_provider="openai-native")
+    client = Satto()
     
     log_print.header(f"{args.command} task: {args.prompt}")
     

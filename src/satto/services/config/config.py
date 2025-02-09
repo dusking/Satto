@@ -30,7 +30,8 @@ class Config:
             If not, the class creates the necessary directory structure for the configuration file.
         """
         self._path: Path = (Path(path or DEFAULT_CONFIG_PATH)).expanduser()
-        self.max_consecutive_mistake_count: int = 3
+        self.api_provider = "anthropic",    # openai-native. anthropic
+        self.max_consecutive_mistake_count: int = 3        
         self.auto_approval: AutoApprovalSettings = AutoApprovalSettings()
         self.auth_anthropic: Optional[AuthAnthropicSettings] = None
         self.auth_openai_native: Optional[AuthOpenAINativeSettings] = None
