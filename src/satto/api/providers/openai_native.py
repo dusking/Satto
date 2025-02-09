@@ -15,7 +15,6 @@ class OpenAiNativeHandler(ApiHandlerBase):
 
     async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
         model_id = self.get_model()["id"]
-        
         # Convert messages to OpenAI format
         openai_messages = [
             {"role": "system", "content": system_prompt},
@@ -41,7 +40,7 @@ class OpenAiNativeHandler(ApiHandlerBase):
         stream = await self.client.chat.completions.create(
             model=model_id,
             messages=openai_messages,
-            temperature=0,
+            temperature=0.5,
             stream=True,
             stream_options={"include_usage": True},
         )

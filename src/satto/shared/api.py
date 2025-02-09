@@ -164,6 +164,14 @@ openai_native_models: Dict[str, ModelInfo] = {
         "input_price": 15,
         "output_price": 60,
     },
+    "o1-mini": {
+        "max_tokens": 65_536,
+        "context_window": 128_000,
+        "supports_images": False,
+        "supports_prompt_cache": False,
+        "input_price": 3,
+        "output_price": 12
+    },
     "gpt-4o": {
         "max_tokens": 4_096,
         "context_window": 128_000,
@@ -172,6 +180,14 @@ openai_native_models: Dict[str, ModelInfo] = {
         "input_price": 5,
         "output_price": 15,
     },
+    "o3-mini": {
+        "max_tokens": 4_096,
+        "context_window": 128_000,
+        "supports_images": True,
+        "supports_prompt_cache": False,
+        "input_price": 0.5,
+        "output_price": 1.5
+    }
 }
 
 openai_native_default_model_id = "gpt-4o"
