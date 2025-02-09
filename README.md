@@ -26,6 +26,8 @@ Satto requires a configuration file located at `~/.config/satto/config.json`. Cr
 
 ```json
 {
+    "api_provider": "anthropic",
+    "max_consecutive_mistake_count": 3,
     "auto_approval": {
         "enabled": true,
         "actions": {
@@ -68,6 +70,8 @@ Satto requires a configuration file located at `~/.config/satto/config.json`. Cr
 ```
 
 The configuration includes:
+- `api_provider`: The API provider, currently supporting: anthropic, openai-native
+- `max_consecutive_mistake_count`: max consecutive_mistake_count before terminating run
 - `auto_approval`: Settings for automatic approval of different actions
   - `enabled`: Enable/disable auto-approval globally
   - `actions`: Specific actions that can be auto-approved
