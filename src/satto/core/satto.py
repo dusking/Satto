@@ -59,6 +59,7 @@ class Satto:
         """
         self.config = Config()
         self.api_provider = self.config.api_provider
+        self.max_consecutive_mistake_count = self.config.max_consecutive_mistake_count
         self.cwd = os.getcwd()
         self.auto_approval_settings = self.config.auto_approval
         self.consecutive_auto_approved_requests_count = 0
@@ -288,7 +289,7 @@ class Satto:
         if self.abort:
             raise Exception("Satto instance aborted")
 
-        if self.consecutive_mistake_count >= 3:
+        if self.consecutive_mistake_count >= self.max_consecutive_mistake_count:
             self.show_notification(
                 "Error",
                 "Satto is having trouble. Exiting task run."
