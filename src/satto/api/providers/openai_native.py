@@ -1,3 +1,6 @@
+import re
+import ast
+import json
 from typing import Any, Dict, Optional
 from openai import AsyncOpenAI
 from .api_handler_base import ApiHandlerBase
@@ -13,6 +16,18 @@ class OpenAiNativeHandler(ApiHandlerBase):
             api_key=self.options.get("openai_native_api_key"),
         )
 
+    def extract_error(self, exception_message: Exception) -> Dict[str, Any]:
+        match = re.search(r"\{.*\}", str(exception_message))
+        if match:
+            error_json_str = match.group(0)
+            
+            try:
+                # Use ast.literal_eval to safely convert the string to a Python dictionary
+                error_dict = ast.literal_eval(error_json_str)
+                return DotDict(error_dict)
+            except (ValueError, SyntaxError) as e:
+                print("Failed to parse JSON:", e)
+
     async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
         model_id = self.get_model()["id"]
         # Convert messages to OpenAI format
@@ -23,10 +38,14 @@ class OpenAiNativeHandler(ApiHandlerBase):
         
         # o1 models don't support streaming
         if model_id in ["o1", "o1-preview", "o1-mini"]:
-            response = await self.client.chat.completions.create(
-                model=model_id,
-                messages=openai_messages,
-            )
+            try:
+                response = await self.client.chat.completions.create(
+                    model=model_id,
+                    messages=openai_messages,
+                )
+            except Exception as ex:
+                error = self.extract_error(ex)
+                return error
             
             return DotDict({
                 "text": response.choices[0].message.content if response.choices else "",
@@ -37,13 +56,18 @@ class OpenAiNativeHandler(ApiHandlerBase):
             })
         
         # For other models, use streaming
-        stream = await self.client.chat.completions.create(
-            model=model_id,
-            messages=openai_messages,
-            temperature=0.5,
-            stream=True,
-            stream_options={"include_usage": True},
-        )
+        try:
+            stream = await self.client.chat.completions.create(
+                model=model_id,
+                messages=openai_messages,
+                temperature=0.5,
+                stream=True,
+                stream_options={"include_usage": True},
+            )
+        except Exception as ex:
+            error = self.extract_error(ex)
+            print(f"Error: {error.error}")
+            return error
 
         full_text = ""
         usage = None

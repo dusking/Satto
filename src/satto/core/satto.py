@@ -322,6 +322,8 @@ class Satto:
 
         previous_api_req_index = -1
         response = await self.attempt_api_request(previous_api_req_index)
+        if not response:
+            return False
         
         # Process the response blocks and track usage
         if isinstance(response, dict) and 'text' in response:
@@ -608,6 +610,10 @@ class Satto:
 
         log_print.info(f"Creating LLM message")
         response = await self.api_handler.create_message(system_prompt, truncated_conversation_history)
+        if response.error:
+            log_print.error(f"LLM call failed: {response.error}\n")
+            return
+        
         log_print.info(f"Got LLM response\n")
         
         # Save LLM response
