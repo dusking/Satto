@@ -107,7 +107,6 @@ class Satto:
         self.is_waiting_for_first_chunk = False
         self.did_automatically_retry_failed_api_request = False
         
-        print("AAAA", self.api_provider )
         if self.api_provider == "anthropic":
             api_key = self.config.auth_anthropic.api_key
             model_id = self.config.auth_anthropic.model_id
