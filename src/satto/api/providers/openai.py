@@ -55,6 +55,6 @@ class OpenAiHandler(ApiHandlerBase):
 
     def get_model(self) -> Dict[str, Any]:
         return {
-            "id": self.options.get("model_id", ""),
+            "id": self.options.get("model", ""),
             "info": openai_model_info_sane_defaults,
         }

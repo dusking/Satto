@@ -13,5 +13,5 @@ def build_api_handler(api_provider: ApiConfiguration) -> ApiHandlerBase:
     }
     if api_provider.name not in handlers:
         raise ValueError(f"Unsupported API provider: {api_provider.name}")
-    handler_class = handlers.get(api_provider.name)
+    handler_class = handlers.get(api_provider.name)    
     return handler_class(options=api_provider)
