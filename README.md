@@ -76,6 +76,17 @@ Satto requires a configuration file located at `~/.config/satto/config.json`. Be
         "api_key": "",
         "model": "deepseek-chat"
     },
+    "api_provider_together": {
+        "name": "together",
+        "api_key": "",
+        "model": "deepseek-ai/DeepSeek-R1",
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 50,
+        "repetition_penalty": 1,
+        "stop": ["<｜end▁of▁sentence｜>"],
+        "stream": true
+    },
     "task_list_files": {
         "dirs_to_ignore": [
             "node_modules", "__pycache__", "env", "venv",

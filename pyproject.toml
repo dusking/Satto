@@ -25,7 +25,8 @@ dependencies = [
     "prettytable", 
     "colorama",
     "anthropic",
-    "openai"
+    "openai",
+    "together"
 ]
 
 [project.optional-dependencies]

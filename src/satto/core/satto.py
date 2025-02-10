@@ -294,7 +294,7 @@ class Satto:
         
         # Process the response blocks and track usage
         if isinstance(response, dict) and 'text' in response:
-            if 'usage' in response:
+            if response.get('usage', {}):
                 input_tokens = response['usage'].get('input_tokens', 0)
                 output_tokens = response['usage'].get('output_tokens', 0)
                 

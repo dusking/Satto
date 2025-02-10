@@ -1,5 +1,7 @@
 import sys
 import time
+import json
+import inspect
 from typing import Protocol, Dict, Any, Union
 
 from ...shared.dicts import DotDict
@@ -18,6 +20,17 @@ class ApiHandlerBase(Protocol):
     def get_model(self) -> DotDict[str, Union[str, ModelInfo]]:
         pass
 
+    def get_filtered_args(self, func, **kwargs):
+        """Calls func with only the arguments it accepts."""
+        # Get the function's signature
+        sig = inspect.signature(func)
+        
+        # Filter out arguments that the function does not accept
+        filtered_args = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        
+        # Call the function with the filtered arguments
+        return DotDict(filtered_args)
+    
     def init_progerss(self):
         self.start_time = time.time()
         self.chunk_count = 0

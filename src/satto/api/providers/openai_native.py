@@ -1,7 +1,5 @@
 import re
 import ast
-import json
-import inspect
 from typing import Any, Dict, Optional
 from openai import AsyncOpenAI
 from .api_handler_base import ApiHandlerBase
@@ -28,18 +26,7 @@ class OpenAiNativeHandler(ApiHandlerBase):
                 error_dict = ast.literal_eval(error_json_str)
                 return DotDict(error_dict)
             except (ValueError, SyntaxError) as e:
-                print("Failed to parse JSON:", e)
-
-    def get_filtered_args(self, func, **kwargs):
-        """Calls func with only the arguments it accepts."""
-        # Get the function's signature
-        sig = inspect.signature(func)
-        
-        # Filter out arguments that the function does not accept
-        filtered_args = {k: v for k, v in kwargs.items() if k in sig.parameters}
-        
-        # Call the function with the filtered arguments
-        return DotDict(filtered_args)
+                print("Failed to parse JSON:", e)    
 
     async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
         model_id = self.options.model
