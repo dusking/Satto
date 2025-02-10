@@ -28,7 +28,7 @@ async def async_main():
     args = parser.parse_args()    
     client = Satto()
     
-    log_print.header(f"{args.command} task: {args.prompt}")
+    log_print.header(f"{client.api_provider.name} {args.command} task: {args.prompt}")
     
     if args.command == 'start':
         await client.start_task(args.prompt)

@@ -9,6 +9,7 @@ from .auto_approval_settings import AutoApprovalSettings
 from .auth_anthropic_settings import AuthAnthropicSettings
 from .auth_openai_native_settings import AuthOpenAINativeSettings
 from .list_files_settings import ListFilesSettings
+from ...shared.dicts import DotDict
 
 
 logger = logging.getLogger(__name__)
@@ -30,33 +31,40 @@ class Config:
             If not, the class creates the necessary directory structure for the configuration file.
         """
         self._path: Path = (Path(path or DEFAULT_CONFIG_PATH)).expanduser()
-        self.api_provider = "anthropic",    # openai-native. anthropic
-        self.max_consecutive_mistake_count: int = 3        
+        self.selected_api_provider: str = None
+        self.max_consecutive_mistake_count: int = 3
         self.auto_approval: AutoApprovalSettings = AutoApprovalSettings()
-        self.auth_anthropic: Optional[AuthAnthropicSettings] = None
-        self.auth_openai_native: Optional[AuthOpenAINativeSettings] = None
         self.task_list_files: ListFilesSettings = ListFilesSettings()
+        self.api_provider = DotDict({})
 
-        if self._path.exists():
+        if self._path.exists():    
             self.load_config()
+
+    def compare(self, s1: str, s2: str) -> bool:
+        return s1.strip().lower() == s2.strip().lower()
 
     def load_config(self):
         """Load configuration from file and update instance attributes."""
         data = json.loads(self._path.read_text())
         
+        self.selected_api_provider = data.get('selected_api_provider')
+        if not self.selected_api_provider:
+            print("Error: Missing selected_api_provider in config file.")
+            return
+
+        # Handle API provider settings separately
+        for key, value in data.items():            
+            if not key.startswith('api_provider_'):
+                continue            
+            if self.compare(key, self.selected_api_provider):            
+                self.api_provider = DotDict(value)
+
         # Handle auto_approval settings separately
         auto_approval_data = data.pop('auto_approval', {})
         if auto_approval_data:
             self.auto_approval = AutoApprovalSettings.from_dict(auto_approval_data)
-        
-        auth_anthropic_data = data.pop('auth_anthropic', None)
-        if auth_anthropic_data:
-            self.auth_anthropic = AuthAnthropicSettings.from_dict(auth_anthropic_data)
             
-        auth_openai_native = data.pop('auth_openai_native', None)
-        if auth_openai_native:
-            self.auth_openai_native = AuthOpenAINativeSettings.from_dict(auth_openai_native)
-            
+        # Handle task_list_files settings separately
         task_list_files_data = data.pop('task_list_files', {})
         if task_list_files_data:
             self.list_files = ListFilesSettings.from_dict(task_list_files_data)

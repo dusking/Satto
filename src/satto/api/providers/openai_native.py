@@ -13,7 +13,7 @@ class OpenAiNativeHandler(ApiHandlerBase):
     def __init__(self, options: Dict[str, Any]):
         self.options = options
         self.client = AsyncOpenAI(
-            api_key=self.options.get("openai_native_api_key"),
+            api_key=self.options.api_key,
         )
 
     def extract_error(self, exception_message: Exception) -> Dict[str, Any]:

@@ -12,13 +12,13 @@ class OpenAiHandler(ApiHandlerBase):
         if self.options.get("openai_base_url", "").lower().find("azure.com") != -1:
             self.client = AsyncAzureOpenAI(
                 base_url=self.options.get("openai_base_url"),
-                api_key=self.options.get("openai_api_key"),
+                api_key=self.options.api_key,
                 api_version=self.options.get("azure_api_version") or azure_openai_default_api_version,
             )
         else:
             self.client = AsyncOpenAI(
                 base_url=self.options.get("openai_base_url"),
-                api_key=self.options.get("openai_api_key"),
+                api_key=self.options.api_key,
             )
 
     async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
@@ -28,7 +28,7 @@ class OpenAiHandler(ApiHandlerBase):
         ]
         
         stream = await self.client.chat.completions.create(
-            model=self.options.get("openai_model_id", ""),
+            model=self.options.get("model_id", ""),
             messages=openai_messages,
             temperature=0,
             stream=True,
@@ -55,6 +55,6 @@ class OpenAiHandler(ApiHandlerBase):
 
     def get_model(self) -> Dict[str, Any]:
         return {
-            "id": self.options.get("openai_model_id", ""),
+            "id": self.options.get("model_id", ""),
             "info": openai_model_info_sane_defaults,
         }
