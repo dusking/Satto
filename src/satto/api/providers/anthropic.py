@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 from anthropic import Anthropic
-from typing import AsyncGenerator, Dict, Any, List
+from typing import AsyncGenerator, Dict, Any, List, Optional
 from .api_handler_base import ApiHandlerBase
 from ...shared.dicts import DotDict
 from ...shared.api import anthropic_models, anthropic_default_model_id
@@ -27,14 +27,28 @@ class AnthropicHandler(ApiHandlerBase):
         model = self.get_model()
         model_id = model["id"]
 
+        # Create message parameters
+        message_params = {
+            "model": model_id,
+            "max_tokens": model["info"].get("max_tokens", 8192),
+            "temperature": 0,
+            "system": [
+                {
+                    "type": "text",
+                    "text": system_prompt,
+                    "cache_control": {"type": "ephemeral"}
+                }
+            ],
+            "messages": [{"role": msg["role"], "content": msg["content"]} for msg in messages],
+            "stream": True
+        }
+     
         stream = await asyncio.to_thread(
             self.client.messages.create,
-            model=model_id,
-            max_tokens=model["info"].get("max_tokens", 8192),
-            temperature=0,
-            system=system_prompt,
-            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages],
-            stream=True
+            **message_params,
+            extra_headers={
+                "anthropic-beta": "prompt-caching-2024-07-31",
+            }
         )
 
         full_text = ""
