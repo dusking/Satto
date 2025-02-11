@@ -16,8 +16,13 @@ class TogetherHandler(ApiHandlerBase):
 
     async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
 
-        message_payload = self.get_filtered_args(self.client.chat.completions.create, **self.options)        
-        message_payload["messages"] = messages
+        message_payload = self.get_filtered_args(self.client.chat.completions.create, **self.options)
+
+        openai_messages = [
+            {"role": "system", "content": system_prompt},
+            *convert_to_openai_messages(messages),
+        ] 
+        message_payload["messages"] = openai_messages
 
         try:            
             response = self.client.chat.completions.create(**message_payload)
