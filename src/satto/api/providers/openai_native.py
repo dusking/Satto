@@ -31,9 +31,11 @@ class OpenAiNativeHandler(ApiHandlerBase):
     async def create_message(self, system_prompt: str, messages: list) -> Dict[str, Any]:
         model_id = self.options.model
 
+        role = "developer" if model_id == "o3-mini" else "system"
+
         # Convert messages to OpenAI format
         openai_messages = [
-            {"role": "system", "content": system_prompt},
+            {"role": role, "content": system_prompt},
             *convert_to_openai_messages(messages),
         ]
         
