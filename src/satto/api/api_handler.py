@@ -4,6 +4,7 @@ from .providers.openai_native import OpenAiNativeHandler
 from .providers.together import TogetherHandler
 from ..shared.api import ApiConfiguration
 from .providers.api_handler_base import ApiHandlerBase
+from .providers.together_openai import TogetherOpennAIHandler
 
 
 def build_api_handler(api_provider: ApiConfiguration) -> ApiHandlerBase:
@@ -11,7 +12,7 @@ def build_api_handler(api_provider: ApiConfiguration) -> ApiHandlerBase:
         "anthropic": AnthropicHandler,
         "openai": OpenAiHandler,
         "openai-native": OpenAiNativeHandler,
-        "together": TogetherHandler,
+        "together": TogetherOpennAIHandler,
     }
     if api_provider.name not in handlers:
         raise ValueError(f"Unsupported API provider: {api_provider.name}")
