@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 
 
 from .api_handler_base import ApiHandlerBase
+from ..transform.r1_format import convert_to_r1_format
 from ...shared.api import ApiConfiguration, ModelInfo, openai_model_info_sane_defaults
 from ..transform.openai_format import convert_to_openai_messages
 from ...shared.dicts import DotDict
@@ -24,11 +25,13 @@ class TogetherOpennAIHandler(ApiHandlerBase):
 
         message_payload = self.get_filtered_args(self.client.chat.completions.create, **self.options)  
 
-        openai_messages = [
-            {"role": "system", "content": system_prompt},
-            *convert_to_openai_messages(messages),
-        ]      
-        message_payload["messages"] = openai_messages
+        model_id = self.options.get("model", "")
+        is_deepseek_reasoner = "deepseek-reasoner" in model_id.lower()
+        
+        if is_deepseek_reasoner:
+            message_payload["messages"] = convert_to_r1_format([{"role": "user", "content": system_prompt}, *messages])
+        else:
+            message_payload["messages"] = [{"role": "system", "content": system_prompt}, *convert_to_openai_messages(messages)]
 
         try:            
             response = await self.client.chat.completions.create(**message_payload)
